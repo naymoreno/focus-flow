@@ -23,6 +23,8 @@
   :root{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+@font-face{font-family:'OpenDyslexic';src:url('https://cdn.jsdelivr.net/npm/openDyslexic@1.0.3/OpenDyslexic-Regular.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}
+body.dyslexic-font{font-family:'OpenDyslexic',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 
 .screen{display:none;padding:16px 16px calc(72px + 24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
 .screen.active{display:block;}
@@ -473,6 +475,15 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="settings-section">Nudge Voice</div>
   <div class="nudge-voice-list" id="nudge-voice-list"></div>
   <div class="nudge-voice-note">Notifications work on Android and desktop. iPhone support requires adding Focus Flow to your home screen first.</div>
+  <div class="settings-section">Accessibility</div>
+  <div class="settings-item" style="cursor:default">
+    <span class="settings-item-label">OpenDyslexic font</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="dyslexic-font-toggle" onchange="toggleDyslexicFont(this.checked)">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="nudge-voice-note">Designed to reduce letter-flipping for dyslexic readers. Available for anyone who finds it easier to read.</div>
   <div class="settings-section">Birthdays</div>
   <div class="settings-item" onclick="openBirthdayManager()"><span class="settings-item-label">🎂 Manage birthdays</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Data</div>
@@ -573,6 +584,7 @@ let userLibrary = JSON.parse(localStorage.getItem('ff4_library') || '{}');
 let viewMode = localStorage.getItem('ff4_view') || 'structured';
 let checkOffSound = localStorage.getItem('ff4_check_sound') === 'true';
 let notificationsEnabled = localStorage.getItem('ff4_notifications') === 'true';
+let dyslexicFont = localStorage.getItem('ff4_dyslexic_font') === 'true';
 let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
 let audioCtx = null;
@@ -1998,6 +2010,18 @@ function updateNotificationSettings() {
   const el = document.getElementById('notifications-toggle');
   if (el) el.checked = notificationsEnabled;
 }
+function applyDyslexicFont() {
+  document.body.classList.toggle('dyslexic-font', dyslexicFont);
+}
+function toggleDyslexicFont(on) {
+  dyslexicFont = on;
+  localStorage.setItem('ff4_dyslexic_font', on ? 'true' : 'false');
+  applyDyslexicFont();
+}
+function updateAccessibilitySettings() {
+  const el = document.getElementById('dyslexic-font-toggle');
+  if (el) el.checked = dyslexicFont;
+}
 function getNudgeVoice(id) {
   return NUDGE_VOICES.find(v => v.id === id) || NUDGE_VOICES[0];
 }
@@ -2249,13 +2273,15 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); renderNudgeVoiceSettings(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); renderNudgeVoiceSettings(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
 initLists();
+applyDyslexicFont();
 if (!sched) {
   startOnboarding();
+  updateAccessibilitySettings();
 } else {
   document.getElementById('onboarding').classList.remove('active');
   document.getElementById('bottom-nav').style.display = 'flex';
@@ -2264,6 +2290,7 @@ if (!sched) {
   updateViewLabel();
   updateSoundSettings();
   updateNotificationSettings();
+  updateAccessibilitySettings();
   renderNudgeVoiceSettings();
   checkBadges();
   initReminders();
