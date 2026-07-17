@@ -216,6 +216,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
 .settings-item-label{font-size:15px;color:var(--text);}
 .settings-item-arrow{color:var(--muted);font-size:18px;}
+.nudge-voice-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
+.nudge-voice-card{padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);cursor:pointer;transition:all 0.15s;}
+.nudge-voice-card.selected{border-color:var(--anchor);background:var(--anchor-bg);}
+.nudge-voice-top{display:flex;align-items:flex-start;gap:12px;}
+.nudge-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;}
+.nudge-voice-card.selected .nudge-radio{border-color:var(--anchor);background:var(--anchor);}
+.nudge-radio-dot{width:8px;height:8px;border-radius:50%;background:#fff;display:none;}
+.nudge-voice-card.selected .nudge-radio-dot{display:block;}
+.nudge-voice-info{flex:1;min-width:0;}
+.nudge-voice-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.nudge-voice-example{font-size:12px;color:var(--text2);line-height:1.45;font-style:italic;}
+.nudge-preview-btn{flex-shrink:0;padding:6px 10px;border-radius:99px;border:0.5px solid var(--border-strong);background:var(--bg);color:var(--anchor);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+.nudge-voice-card.selected .nudge-preview-btn{border-color:var(--anchor);background:var(--card);}
 .install-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;}
 .install-overlay.active{display:block;}
 .install-panel{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:20px 20px 0 0;z-index:401;max-height:88vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 0.3s ease;max-width:480px;margin:0 auto;}
@@ -445,6 +458,8 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
       <span class="toggle-slider"></span>
     </label>
   </div>
+  <div class="settings-section">Nudge Voice</div>
+  <div class="nudge-voice-list" id="nudge-voice-list"></div>
   <div class="settings-section">Birthdays</div>
   <div class="settings-item" onclick="openBirthdayManager()"><span class="settings-item-label">🎂 Manage birthdays</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Data</div>
@@ -544,8 +559,19 @@ let birthdays = JSON.parse(localStorage.getItem('ff4_bdays') || '[]');
 let userLibrary = JSON.parse(localStorage.getItem('ff4_library') || '{}');
 let viewMode = localStorage.getItem('ff4_view') || 'structured';
 let checkOffSound = localStorage.getItem('ff4_check_sound') === 'true';
+let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
 let audioCtx = null;
+
+const NUDGE_VOICES = [
+  { id:'gentle', name:'Gentle', template:'Hey, just a reminder that [task] is waiting. You\'ve got this.' },
+  { id:'encouraging', name:'Encouraging', template:'Time for [task]! You\'re doing great — keep that momentum going.' },
+  { id:'straight', name:'Straight Shooter', template:'[task] is due. Time to get it done.' },
+  { id:'hype', name:'Hype Coach', template:'LET\'S GO. [task] is waiting and you are more than capable. Get up, get moving.' },
+  { id:'tough', name:'Tough Love', template:'No excuses. [task] doesn\'t do itself. You know what to do.' },
+];
+const NUDGE_PREVIEW_TASK = 'Morning workout';
+if (!NUDGE_VOICES.some(v => v.id === nudgeVoice)) nudgeVoice = 'gentle';
 
 const BADGE_DEFS = [
   { id:'first_win', icon:'🌱', name:'First Win', hint:'Complete your first task', check:s=>s.tasksCompleted>=1 },
@@ -663,11 +689,13 @@ function pickView(m, el) { viewMode=m; localStorage.setItem('ff4_view',m); docum
 function nextOb() { obStep++; if(obStep>=OB_STEPS){finishOb();return;} renderOb(); }
 function finishOb() {
   if (!sched) sched = {};
+  save();
   document.getElementById('onboarding').classList.remove('active');
   document.getElementById('bottom-nav').style.display = 'flex';
   showScreen('tracker', document.getElementById('nav-tracker'));
   renderDay();
   updateViewLabel();
+  maybeShowInstallPrompt();
 }
 function finishAndAdd() { finishOb(); setTimeout(()=>openAddSheet(viewDk,'Morning'),350); }
 function goToMyDay() { showScreen('tracker',document.getElementById('nav-tracker')); renderDay(); }
@@ -929,8 +957,8 @@ function makeBlock(task, d, zone) {
   el.onclick = (e) => {
     if (pressTimer) return; // was a long press, ignore
     const nowDone = !checks[key];
-    checks[key] = nowDone;
-    save();
+    if (nowDone) checks[key] = true;
+    else delete checks[key];
     if (navigator.vibrate) navigator.vibrate(nowDone ? 30 : 10);
     chk.classList.add('check-pop');
     setTimeout(()=>chk.classList.remove('check-pop'), 400);
@@ -944,6 +972,9 @@ function makeBlock(task, d, zone) {
       chk.style.background=''; chk.style.borderColor='';
       el.classList.remove('done');
       removeFromWinsLive(d, task.name);
+      if (task.trackStreak) recalcStreakFromChecks(getRootTaskId(task.id), task.name);
+      checkBadges();
+      save();
     }
     const dayData=sched[d]; let all=[];
     if(viewMode==='structured') ZONES.forEach(z=>all=all.concat(dayData?.structured?.[z]||[]));
@@ -1026,8 +1057,15 @@ function checkBadges() {
   const stats = getBadgeStats();
   let changed = false;
   BADGE_DEFS.forEach(b => {
-    if (!badges[b.id] && b.check(stats)) {
-      badges[b.id] = { earnedAt: computeBadgeEarnDate(b.id) };
+    const qualifies = b.check(stats);
+    if (qualifies) {
+      const earnedAt = computeBadgeEarnDate(b.id);
+      if (!badges[b.id] || badges[b.id].earnedAt !== earnedAt) {
+        badges[b.id] = { earnedAt };
+        changed = true;
+      }
+    } else if (badges[b.id]) {
+      delete badges[b.id];
       changed = true;
     }
   });
@@ -1069,10 +1107,53 @@ function addToWinsLive(d, name) {
 function removeFromWinsLive(d, name) {
   if (!wins[d]) return;
   wins[d].items = wins[d].items.filter(i=>i!==name);
-  save();
+  if (!wins[d].items.length && !wins[d].events?.length) delete wins[d];
 }
 
 // ── STREAKS ──────────────────────────────────────────────────────
+function getRootTaskId(taskId) { return taskId.split('_d')[0]; }
+function getStreakCheckDates(rootId) {
+  const dates = [];
+  Object.entries(checks).forEach(([key, done]) => {
+    if (!done) return;
+    const sep = key.indexOf('_');
+    if (sep < 0) return;
+    if (getRootTaskId(key.slice(sep + 1)) !== rootId) return;
+    dates.push(key.slice(0, sep));
+  });
+  return [...new Set(dates)].sort();
+}
+function daysBetween(d1, d2) {
+  return Math.round((fromDk(d2) - fromDk(d1)) / 86400000);
+}
+function recalcStreakFromChecks(rootId, name) {
+  const dates = getStreakCheckDates(rootId);
+  if (!streakData[rootId]) streakData[rootId] = { name, current: 0, best: 0, lastDate: null };
+  const s = streakData[rootId];
+  if (name) s.name = name;
+  if (!dates.length) {
+    s.current = 0;
+    s.best = 0;
+    s.lastDate = null;
+    return;
+  }
+  let best = 1, run = 1;
+  for (let i = 1; i < dates.length; i++) {
+    if (daysBetween(dates[i - 1], dates[i]) === 1) { run++; best = Math.max(best, run); }
+    else run = 1;
+  }
+  const today = todayDk;
+  const yesterday = dk(new Date(NOW.getTime() - 86400000));
+  const last = dates[dates.length - 1];
+  let current = 1;
+  for (let i = dates.length - 2; i >= 0; i--) {
+    if (daysBetween(dates[i], dates[i + 1]) === 1) current++;
+    else break;
+  }
+  s.lastDate = last;
+  s.current = (last === today || last === yesterday) ? current : current;
+  s.best = best;
+}
 function updateStreak(taskId, name) {
   const rootId = taskId.split('_d')[0];
   if (!streakData[rootId]) streakData[rootId] = { name, current:0, best:0, lastDate:null };
@@ -1705,39 +1786,44 @@ function isInstalledApp() {
 function isIOSDevice() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+function shouldShowInstallPrompt() {
+  return !isInstalledApp() && isIOSDevice();
+}
+function getInstallHelpHtml() {
+  if (isInstalledApp()) {
+    return '<p><strong>✓ You&apos;re all set.</strong> Focus Flow is running from your Home Screen.</p>';
+  }
+  if (isIOSDevice()) {
+    if (location.protocol === 'file:') {
+      return `
+        <p>Focus Flow works best as an app on your Home Screen. Here&apos;s how to set it up:</p>
+        <ol>
+          <li>On your Mac, open the <strong>Focus Flow</strong> folder and double-click <strong>start-server.command</strong></li>
+          <li>On your iPhone, open <strong>Safari</strong> and go to the address shown in that window</li>
+          <li>Tap <strong>Share</strong> (↑) → <strong>Add to Home Screen</strong> → <strong>Add</strong></li>
+        </ol>
+        <div class="install-note"><strong>Tip:</strong> Your phone and Mac need to be on the same Wi‑Fi. Keep the server window open while you use the app.</div>`;
+    }
+    return `
+      <p>Add Focus Flow to your Home Screen so it opens like a real app — full screen, no browser bar.</p>
+      <ol>
+        <li>Tap <strong>Share</strong> (↑) at the bottom of Safari</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+        <li>Tap <strong>Add</strong> in the top right</li>
+      </ol>
+      <div class="install-note"><strong>Don&apos;t see it?</strong> In the share menu, tap <strong>Edit Actions</strong> and turn on <strong>Add to Home Screen</strong>. This only works in Safari — not Chrome.</div>
+      <div class="install-url">${location.href}</div>`;
+  }
+  return `
+    <p>To install on iPhone, open Focus Flow in <strong>Safari</strong> using the link from <strong>start-server.command</strong> on your Mac, then tap Share → Add to Home Screen.</p>`;
+}
+function maybeShowInstallPrompt() {
+  if (shouldShowInstallPrompt()) setTimeout(openInstallHelp, 600);
+}
 function openInstallHelp() {
   const body = document.getElementById('install-body');
   const item = document.getElementById('install-settings-item');
-  if (isInstalledApp()) {
-    body.innerHTML = '<p><strong>✓ You&apos;re all set.</strong> Focus Flow is running from your Home Screen.</p>';
-  } else if (location.protocol === 'file:') {
-    body.innerHTML = `
-      <p><strong>Why you don&apos;t see it:</strong> Opening the file from the Files app doesn&apos;t offer Add to Home Screen. You need a web link first.</p>
-      <p><strong>Easiest way (free, ~2 minutes):</strong></p>
-      <ol>
-        <li>On your Mac, go to <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a></li>
-        <li>Drag your <strong>Focus Flow</strong> folder onto the page</li>
-        <li>Copy the URL Netlify gives you (like <em>random-name.netlify.app</em>)</li>
-        <li>On iPhone, open that URL in <strong>Safari</strong> — not Files, not Chrome</li>
-        <li>Tap <strong>Share</strong> (↑) → scroll → <strong>Add to Home Screen</strong></li>
-      </ol>
-      <div class="install-note"><strong>Same Wi‑Fi option:</strong> On your Mac, double‑click <strong>start-server.command</strong> in the Focus Flow folder, then open the address it shows in iPhone Safari.</div>`;
-  } else if (isIOSDevice()) {
-    body.innerHTML = `
-      <p>You&apos;re in Safari with a real web link — Add to Home Screen should be available.</p>
-      <ol>
-        <li>Tap <strong>Share</strong> (↑) at the bottom of Safari</li>
-        <li>Scroll down in the share menu</li>
-        <li>Tap <strong>Add to Home Screen</strong></li>
-        <li>Tap <strong>Add</strong> in the top right</li>
-      </ol>
-      <div class="install-note"><strong>Don&apos;t see it?</strong> In the share menu, tap <strong>Edit Actions</strong> (or <strong>More</strong>) and turn on <strong>Add to Home Screen</strong>. It must be Safari — Chrome on iPhone won&apos;t show this option.</div>
-      <div class="install-url">${location.origin}${location.pathname.replace(/[^/]*$/, '')}</div>`;
-  } else {
-    body.innerHTML = `
-      <p>On iPhone, Add to Home Screen only works in <strong>Safari</strong> with a web URL (not a file opened from Files).</p>
-      <p>Host the folder at <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">Netlify Drop</a>, or run <strong>start-server.command</strong> on your Mac and open the link on your phone.</p>`;
-  }
+  body.innerHTML = getInstallHelpHtml();
   if (item) item.style.display = isInstalledApp() ? 'none' : 'flex';
   document.getElementById('install-overlay').classList.add('active');
   document.getElementById('install-panel').classList.add('active');
@@ -1778,6 +1864,39 @@ function updateSoundSettings(){
   const el=document.getElementById('check-sound-toggle');
   if(el)el.checked=checkOffSound;
 }
+function getNudgeVoice(id) {
+  return NUDGE_VOICES.find(v => v.id === id) || NUDGE_VOICES[0];
+}
+function formatNudgeMessage(taskName, voiceId) {
+  const voice = getNudgeVoice(voiceId || nudgeVoice);
+  return voice.template.replace(/\[task\]/g, taskName);
+}
+function pickNudgeVoice(id) {
+  nudgeVoice = id;
+  localStorage.setItem('ff4_nudge_voice', id);
+  renderNudgeVoiceSettings();
+}
+function previewNudgeVoice(id) {
+  alert(formatNudgeMessage(NUDGE_PREVIEW_TASK, id));
+}
+function renderNudgeVoiceSettings() {
+  const el = document.getElementById('nudge-voice-list');
+  if (!el) return;
+  el.innerHTML = NUDGE_VOICES.map(v => {
+    const selected = nudgeVoice === v.id;
+    const example = formatNudgeMessage(NUDGE_PREVIEW_TASK, v.id);
+    return `<div class="nudge-voice-card ${selected ? 'selected' : ''}" onclick="pickNudgeVoice('${v.id}')">
+      <div class="nudge-voice-top">
+        <div class="nudge-radio"><div class="nudge-radio-dot"></div></div>
+        <div class="nudge-voice-info">
+          <div class="nudge-voice-name">${v.name}</div>
+          <div class="nudge-voice-example">"${example}"</div>
+        </div>
+        <button class="nudge-preview-btn" onclick="event.stopPropagation();previewNudgeVoice('${v.id}')">Preview</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 function confirmClear(){if(confirm('Clear all tasks? This cannot be undone.')){sched={};checks={};wins={};badges={};save();renderDay();}}
 
 // ── SCREEN ───────────────────────────────────────────────────────
@@ -1786,6 +1905,7 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
+  if(name==='settings'){ updateSoundSettings(); renderNudgeVoiceSettings(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
@@ -1799,10 +1919,9 @@ if (!sched) {
   renderDay();
   updateViewLabel();
   updateSoundSettings();
+  renderNudgeVoiceSettings();
   checkBadges();
-  if (!isInstalledApp() && isIOSDevice() && location.protocol === 'file:') {
-    setTimeout(openInstallHelp, 600);
-  }
+  maybeShowInstallPrompt();
 }
 </script>
 </body>
