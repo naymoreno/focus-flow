@@ -460,6 +460,14 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
       <span class="toggle-slider"></span>
     </label>
   </div>
+  <div class="settings-section">Notifications</div>
+  <div class="settings-item" style="cursor:default">
+    <span class="settings-item-label">🔔 Task reminders</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="notifications-toggle" onchange="toggleNotifications(this.checked)">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
   <div class="settings-section">Nudge Voice</div>
   <div class="nudge-voice-list" id="nudge-voice-list"></div>
   <div class="nudge-voice-note">Notifications work on Android and desktop. iPhone support requires adding Focus Flow to your home screen first.</div>
@@ -562,6 +570,7 @@ let birthdays = JSON.parse(localStorage.getItem('ff4_bdays') || '[]');
 let userLibrary = JSON.parse(localStorage.getItem('ff4_library') || '{}');
 let viewMode = localStorage.getItem('ff4_view') || 'structured';
 let checkOffSound = localStorage.getItem('ff4_check_sound') === 'true';
+let notificationsEnabled = localStorage.getItem('ff4_notifications') === 'true';
 let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
 let audioCtx = null;
@@ -1371,7 +1380,7 @@ function saveTask() {
     const trackStreak=document.getElementById('streak-toggle')?.checked||false;
     const saveToLib=document.getElementById('save-to-lib')?.checked||false;
     const { reminder, reminderTime, reminderTimeBefore } = getReminderFromForm();
-    if (reminder !== 'none') await ensureNotificationPermission();
+    if (reminder !== 'none' && notificationsEnabled) await ensureNotificationPermission();
 
     const repSel=document.querySelector('.repeat-btn.selected');
     const repMode=repSel?.id==='rep-yes'?'yes':'no';
@@ -1876,6 +1885,25 @@ function updateSoundSettings(){
   const el=document.getElementById('check-sound-toggle');
   if(el)el.checked=checkOffSound;
 }
+async function toggleNotifications(on) {
+  if (on) {
+    const ok = await ensureNotificationPermission();
+    if (!ok) {
+      notificationsEnabled = false;
+      localStorage.setItem('ff4_notifications', 'false');
+      updateNotificationSettings();
+      queueScheduleReminders();
+      return;
+    }
+  }
+  notificationsEnabled = on;
+  localStorage.setItem('ff4_notifications', on ? 'true' : 'false');
+  queueScheduleReminders();
+}
+function updateNotificationSettings() {
+  const el = document.getElementById('notifications-toggle');
+  if (el) el.checked = notificationsEnabled;
+}
 function getNudgeVoice(id) {
   return NUDGE_VOICES.find(v => v.id === id) || NUDGE_VOICES[0];
 }
@@ -2023,6 +2051,7 @@ async function showTaskNotification(title, body) {
   new Notification(title, opts);
 }
 function fireReminder(task, dateKey, slot) {
+  if (!notificationsEnabled) return;
   const key = reminderKey(task.id, dateKey, slot);
   if (wasFired(key) || checks[`${dateKey}_${task.id}`]) return;
   markFired(key);
@@ -2034,6 +2063,7 @@ function clearReminderTimers() {
 }
 function scheduleReminders() {
   clearReminderTimers();
+  if (!notificationsEnabled) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   forEachScheduledTask((task, dateKey) => {
     if (checks[`${dateKey}_${task.id}`]) return;
@@ -2052,6 +2082,7 @@ function scheduleReminders() {
   });
 }
 function checkDueReminders() {
+  if (!notificationsEnabled) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   forEachScheduledTask((task, dateKey) => {
     if (checks[`${dateKey}_${task.id}`]) return;
@@ -2124,7 +2155,7 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); renderNudgeVoiceSettings(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); renderNudgeVoiceSettings(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
@@ -2138,6 +2169,7 @@ if (!sched) {
   renderDay();
   updateViewLabel();
   updateSoundSettings();
+  updateNotificationSettings();
   renderNudgeVoiceSettings();
   checkBadges();
   initReminders();
