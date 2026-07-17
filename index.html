@@ -108,7 +108,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .zone-label::after{content:'';flex:1;height:0.5px;background:var(--border);}
 
 /* BLOCK */
-.block{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--card);margin-bottom:8px;border-left:3px solid var(--border);position:relative;transition:opacity 0.2s;}
+.block{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--card);margin-bottom:8px;border-left:3px solid var(--border);position:relative;transition:opacity 0.2s;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
 .block.done{opacity:0.4;}
 .block.done .block-title{text-decoration:line-through;}
 .block.event-block{border-left-color:var(--purple);cursor:default;}
@@ -121,6 +121,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .block.done .check-inner{display:block;}
 .block-body{flex:1;min-width:0;}
 .block-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;}
+.block-more-btn{flex-shrink:0;background:none;border:none;font-size:20px;color:var(--muted);padding:0 2px;cursor:pointer;line-height:1;margin-top:1px;}
+.block-more-btn:active{color:var(--text);}
 .block-time{font-size:11px;color:var(--muted);margin-top:2px;}
 .block-detail{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4;}
 .block-meta{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center;}
@@ -512,23 +514,23 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- LONG PRESS MENU -->
 <div class="lp-overlay" id="lp-overlay" onclick="closeLpMenu()"></div>
-<div class="lp-menu" id="lp-menu">
+<div class="lp-menu" id="lp-menu" onclick="event.stopPropagation()">
   <div class="lp-handle"></div>
   <div class="lp-task-name" id="lp-task-name"></div>
-  <button class="lp-btn" id="lp-edit" onclick="lpEdit()"><span class="lp-btn-icon">✎</span>Edit task</button>
-  <button class="lp-btn" id="lp-bump" onclick="lpBump()"><span class="lp-btn-icon">➡️</span>Bump forward</button>
-  <button class="lp-btn lp-delete" onclick="lpDelete()"><span class="lp-btn-icon">🗑</span>Delete</button>
+  <button class="lp-btn" id="lp-edit" onclick="lpEdit(event)"><span class="lp-btn-icon">✎</span>Edit task</button>
+  <button class="lp-btn" id="lp-bump" onclick="lpBump(event)"><span class="lp-btn-icon">➡️</span>Bump forward</button>
+  <button class="lp-btn lp-delete" onclick="lpDelete(event)"><span class="lp-btn-icon">🗑</span>Delete</button>
   <button class="lp-btn lp-cancel" onclick="closeLpMenu()"><span class="lp-btn-icon">✕</span>Cancel</button>
 </div>
 
 <!-- LIST TASK MENU -->
 <div class="lp-overlay" id="list-lp-overlay" onclick="closeListLp()"></div>
-<div class="lp-menu" id="list-lp-menu">
+<div class="lp-menu" id="list-lp-menu" onclick="event.stopPropagation()">
   <div class="lp-handle"></div>
   <div class="lp-task-name" id="list-lp-name"></div>
-  <button class="lp-btn" onclick="listLpSchedule()"><span class="lp-btn-icon">📅</span>Schedule to a date</button>
+  <button class="lp-btn" onclick="listLpSchedule(event)"><span class="lp-btn-icon">📅</span>Schedule to a date</button>
   <button class="lp-btn" onclick="listLpDone()"><span class="lp-btn-icon">✓</span>Mark done</button>
-  <button class="lp-btn" onclick="listLpEdit()"><span class="lp-btn-icon">✎</span>Edit</button>
+  <button class="lp-btn" onclick="listLpEdit(event)"><span class="lp-btn-icon">✎</span>Edit</button>
   <button class="lp-btn lp-delete" onclick="listLpDelete()"><span class="lp-btn-icon">🗑</span>Delete</button>
   <button class="lp-btn lp-cancel" onclick="closeListLp()"><span class="lp-btn-icon">✕</span>Cancel</button>
 </div>
@@ -851,11 +853,30 @@ function renderDay() {
 
 // ── LONG PRESS MENU ──────────────────────────────────────────────
 let lpTask = null, lpDk = null, lpZone = null;
+let sheetCloseUntil = 0;
 
+function storeLpContext(task, d, zone) {
+  const menu = document.getElementById('lp-menu');
+  menu.dataset.taskJson = JSON.stringify(task);
+  menu.dataset.dk = d;
+  menu.dataset.zone = zone || '';
+}
+function readLpContext() {
+  const menu = document.getElementById('lp-menu');
+  try {
+    return {
+      task: JSON.parse(menu.dataset.taskJson || 'null'),
+      d: menu.dataset.dk,
+      zone: menu.dataset.zone,
+    };
+  } catch (e) {
+    return { task: null, d: null, zone: null };
+  }
+}
 function openLpMenu(task, d, zone) {
   lpTask = task; lpDk = d; lpZone = zone;
+  storeLpContext(task, d, zone);
   document.getElementById('lp-task-name').textContent = task.name;
-  // Show bump option only for flex tasks or with warning for anchors
   document.getElementById('lp-bump').style.display = 'flex';
   document.getElementById('lp-overlay').classList.add('active');
   document.getElementById('lp-menu').classList.add('active');
@@ -865,23 +886,31 @@ function closeLpMenu() {
   document.getElementById('lp-menu').classList.remove('active');
   lpTask = null; lpDk = null; lpZone = null;
 }
-function lpEdit() {
-  const task = lpTask, d = lpDk, zone = lpZone;
+function lpEdit(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  const { task, d, zone } = readLpContext();
   closeLpMenu();
-  if (task) editTask(task.id, d, zone);
+  if (!task) return;
+  setTimeout(() => editTask(task.id, d, zone), 50);
 }
-function lpDelete() {
-  const task = lpTask, d = lpDk, zone = lpZone;
+function lpDelete(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  const { task, d, zone } = readLpContext();
   closeLpMenu();
-  if (task) confirmDelete(JSON.stringify(task), d, zone);
+  if (!task) return;
+  setTimeout(() => confirmDelete(JSON.stringify(task), d, zone), 50);
 }
-function lpBump() {
-  const task = lpTask, d = lpDk, zone = lpZone;
+function lpBump(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  const { task, d, zone } = readLpContext();
   closeLpMenu();
-  if (task.type === 'anchor') {
-    if (!confirm(`"${task.name}" is an anchor task. Bump it anyway?`)) return;
-  }
-  openBumpSheet(task, d, zone);
+  if (!task) return;
+  setTimeout(() => {
+    if (task.type === 'anchor') {
+      if (!confirm(`"${task.name}" is an anchor task. Bump it anyway?`)) return;
+    }
+    openBumpSheet(task, d, zone);
+  }, 50);
 }
 
 function openBumpSheet(task, d, zone) {
@@ -906,7 +935,7 @@ function openBumpSheet(task, d, zone) {
       <div class="bump-option-icon">🗓</div>
       <div><div class="bump-option-text">Next week</div><div class="bump-option-sub">${dayLabel(nextWeek)}</div></div>
     </div>`;
-  openSheet();
+  openSheetGuarded();
 }
 
 function openBumpLaterPicker(fromD, zone, taskJson) {
@@ -963,21 +992,53 @@ function makeBlock(task, d, zone) {
   const chk = el.querySelector('.block-check');
   if (isDone) { chk.style.background=color; chk.style.borderColor=color; }
 
-  // Long press
+  // Long press + more button
   let pressTimer = null;
-  const startPress = () => { pressTimer = setTimeout(() => { openLpMenu(task, d, zone); }, 500); };
-  const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+  let longPressHandled = false;
+  const startPress = (e) => {
+    longPressHandled = false;
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      longPressHandled = true;
+      openLpMenu(task, d, zone);
+    }, 550);
+  };
+  const cancelPress = () => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  };
+  const endPress = (e) => {
+    if (longPressHandled) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(() => { longPressHandled = false; }, 400);
+    }
+    cancelPress();
+  };
 
-  el.addEventListener('touchstart', startPress, {passive:true});
-  el.addEventListener('touchend', cancelPress);
+  el.addEventListener('touchstart', startPress, { passive: true });
+  el.addEventListener('touchend', endPress);
+  el.addEventListener('touchcancel', cancelPress);
   el.addEventListener('touchmove', cancelPress);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
   el.addEventListener('mousedown', startPress);
   el.addEventListener('mouseup', cancelPress);
   el.addEventListener('mouseleave', cancelPress);
 
+  const moreBtn = document.createElement('button');
+  moreBtn.className = 'block-more-btn';
+  moreBtn.setAttribute('aria-label', 'Task options');
+  moreBtn.textContent = '⋯';
+  moreBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openLpMenu(task, d, zone);
+  });
+  el.appendChild(moreBtn);
+
   // Tap to check off
   el.onclick = (e) => {
-    if (pressTimer) return; // was a long press, ignore
+    if (longPressHandled) return;
+    if (e.target.closest('.block-more-btn')) return;
     const nowDone = !checks[key];
     if (nowDone) checks[key] = true;
     else delete checks[key];
@@ -1259,8 +1320,16 @@ function deleteBirthday(id) {
 }
 
 // ── SHEET ────────────────────────────────────────────────────────
-function openSheet() { document.getElementById('sheet-overlay').classList.add('active'); document.getElementById('main-sheet').classList.add('active'); }
+function openSheet() {
+  document.getElementById('sheet-overlay').classList.add('active');
+  document.getElementById('main-sheet').classList.add('active');
+}
+function openSheetGuarded() {
+  sheetCloseUntil = Date.now() + 450;
+  openSheet();
+}
 function closeSheet() {
+  if (Date.now() < sheetCloseUntil) return;
   document.getElementById('sheet-overlay').classList.remove('active');
   document.getElementById('main-sheet').classList.remove('active');
   pendingTask={}; editingTask=null; deletingTask=null; pendingTags=[]; currentCat=null;
@@ -1465,7 +1534,7 @@ function editTask(id,d,zone){
   if(viewMode==='structured'){ZONES.forEach(z=>{const t=sched[d]?.structured?.[z]?.find(t=>t.id===id);if(t)found={...t,zone:z};});}
   else{found=sched[d]?.simple?.find(t=>t.id===id);}
   if(!found)return;
-  pendingTask={d,zone};showForm(null,found);openSheet();
+  pendingTask={d,zone:zone||found.zone};showForm(null,found);openSheetGuarded();
 }
 
 // ── DELETE ───────────────────────────────────────────────────────
@@ -1474,7 +1543,7 @@ function confirmDelete(taskJson,d,zone){
   document.getElementById('sheet-title').textContent='Delete task';
   const isRep=task.repeat==='yes';
   document.getElementById('sheet-body').innerHTML=isRep?`<div class="del-confirm"><div class="del-title">"${task.name}"</div><div class="del-sub">This repeats. What would you like to delete?</div><div class="del-btns"><button class="del-this" onclick="doDelete(false)">Just this one</button><button class="del-all" onclick="doDelete(true)">All future events</button><button class="del-cancel" onclick="closeSheet()">Cancel</button></div></div>`:`<div class="del-confirm"><div class="del-title">"${task.name}"</div><div class="del-sub">Delete this task?</div><div class="del-btns"><button class="del-all" onclick="doDelete(false)">Delete</button><button class="del-cancel" onclick="closeSheet()">Cancel</button></div></div>`;
-  openSheet();
+  openSheetGuarded();
 }
 function doDelete(all){
   const{task}=deletingTask;const root=task.id.split('_')[0];
@@ -1621,17 +1690,21 @@ function closeListLp() {
   listLpListId = null;
 }
 
-function listLpSchedule() {
+function listLpSchedule(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   const task = listLpTask, listId = listLpListId;
   closeListLp();
   if (!task) return;
+  setTimeout(() => listLpScheduleOpen(task, listId), 50);
+}
+function listLpScheduleOpen(task, listId) {
   document.getElementById('sheet-title').textContent = 'Schedule to My Day';
   document.getElementById('sheet-body').innerHTML = `
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Move <strong>${task.name}</strong> to a date. It will appear as a <span class="badge badge-flex">💪 flex</span> task in My Day.</div>
     <div class="form-field"><label class="form-label">Date</label><input class="form-input" id="list-schedule-date" type="date" value="${todayDk}"></div>
     ${viewMode==='structured'?`<div class="form-field"><label class="form-label">Zone</label><div class="zone-picker" id="list-schedule-zone">${ZONES.map(z=>`<button class="zone-btn ${z==='Morning'?'selected':''}" onclick="document.querySelectorAll('#list-schedule-zone .zone-btn').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${z}</button>`).join('')}</div></div>`:''}
     <button class="save-btn" onclick="doListSchedule('${listId}','${task.id}')">Add to My Day</button>`;
-  openSheet();
+  openSheetGuarded();
 }
 
 function doListSchedule(listId, taskId) {
@@ -1676,11 +1749,12 @@ function listLpDone() {
   renderLists();
 }
 
-function listLpEdit() {
+function listLpEdit(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   const task = listLpTask, listId = listLpListId;
   closeListLp();
   if (!task) return;
-  openListTaskForm(listId, task);
+  setTimeout(() => openListTaskForm(listId, task), 50);
 }
 
 function listLpDelete() {
@@ -1710,7 +1784,7 @@ function openListTaskForm(listId, existing) {
     <div class="form-field"><label class="form-label">Tags (optional)</label><div class="tag-row"><input class="tag-input" id="list-tag-input" placeholder="Add a tag..." onkeydown="if(event.key==='Enter')addListTag()"><button class="tag-add-btn" onclick="addListTag()">+</button></div><div class="tags-display" id="list-tags-display"></div></div>
     <button class="save-btn" onclick="saveListTask()">${existing?'Save changes':'Add task'}</button>`;
   renderListTags();
-  openSheet();
+  openSheetGuarded();
 }
 
 function selListTaskColor(el, c) {
