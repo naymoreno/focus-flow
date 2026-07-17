@@ -23,8 +23,7 @@
   :root{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
-@font-face{font-family:'OpenDyslexic';src:url('https://cdn.jsdelivr.net/npm/openDyslexic@1.0.3/OpenDyslexic-Regular.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap;}
-body.dyslexic-font{font-family:'OpenDyslexic',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !important;}
 
 .screen{display:none;padding:16px 16px calc(72px + 24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
 .screen.active{display:block;}
@@ -2010,6 +2009,18 @@ function updateNotificationSettings() {
 }
 function applyDyslexicFont() {
   document.body.classList.toggle('dyslexic-font', dyslexicFont);
+  let link = document.getElementById('opendyslexic-font');
+  if (dyslexicFont) {
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'opendyslexic-font';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.cdnfonts.com/css/opendyslexic';
+      document.head.appendChild(link);
+    }
+  } else if (link) {
+    link.remove();
+  }
 }
 function toggleDyslexicFont(on) {
   dyslexicFont = on;
