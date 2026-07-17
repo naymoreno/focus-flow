@@ -472,9 +472,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
       <span class="toggle-slider"></span>
     </label>
   </div>
-  <div class="settings-section">Nudge Voice</div>
-  <div class="nudge-voice-list" id="nudge-voice-list"></div>
-  <div class="nudge-voice-note">Notifications work on Android and desktop. iPhone support requires adding Focus Flow to your home screen first.</div>
+  <div class="settings-item" onclick="openNudgeVoiceSettings()"><span class="settings-item-label" id="nudge-voice-label">🎙 Nudge voice: Gentle</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Accessibility</div>
   <div class="settings-item" style="cursor:default">
     <span class="settings-item-label">OpenDyslexic font</span>
@@ -2033,9 +2031,23 @@ function pickNudgeVoice(id) {
   nudgeVoice = id;
   localStorage.setItem('ff4_nudge_voice', id);
   renderNudgeVoiceSettings();
+  updateNudgeVoiceLabel();
 }
 function previewNudgeVoice(id) {
   alert(formatNudgeMessage(NUDGE_PREVIEW_TASK, id));
+}
+function updateNudgeVoiceLabel() {
+  const el = document.getElementById('nudge-voice-label');
+  if (el) el.textContent = `🎙 Nudge voice: ${getNudgeVoice(nudgeVoice).name}`;
+}
+function openNudgeVoiceSettings() {
+  document.getElementById('sheet-title').textContent = 'Nudge Voice';
+  document.getElementById('sheet-body').innerHTML = `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Choose the tone for task reminder notifications. Tap Preview to hear a sample.</div>
+    <div class="nudge-voice-list" id="nudge-voice-list"></div>
+    <div class="nudge-voice-note">Notifications work on Android and desktop. iPhone support requires adding Focus Flow to your home screen first.</div>`;
+  renderNudgeVoiceSettings();
+  openSheet();
 }
 function renderNudgeVoiceSettings() {
   const el = document.getElementById('nudge-voice-list');
@@ -2273,7 +2285,7 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); renderNudgeVoiceSettings(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
@@ -2282,6 +2294,7 @@ applyDyslexicFont();
 if (!sched) {
   startOnboarding();
   updateAccessibilitySettings();
+  updateNudgeVoiceLabel();
 } else {
   document.getElementById('onboarding').classList.remove('active');
   document.getElementById('bottom-nav').style.display = 'flex';
@@ -2291,7 +2304,7 @@ if (!sched) {
   updateSoundSettings();
   updateNotificationSettings();
   updateAccessibilitySettings();
-  renderNudgeVoiceSettings();
+  updateNudgeVoiceLabel();
   checkBadges();
   initReminders();
   maybeShowInstallPrompt();
