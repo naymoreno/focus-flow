@@ -865,8 +865,16 @@ function closeLpMenu() {
   document.getElementById('lp-menu').classList.remove('active');
   lpTask = null; lpDk = null; lpZone = null;
 }
-function lpEdit() { closeLpMenu(); editTask(lpTask.id, lpDk, lpZone); }
-function lpDelete() { closeLpMenu(); confirmDelete(JSON.stringify(JSON.stringify(lpTask)), lpDk, lpZone); }
+function lpEdit() {
+  const task = lpTask, d = lpDk, zone = lpZone;
+  closeLpMenu();
+  if (task) editTask(task.id, d, zone);
+}
+function lpDelete() {
+  const task = lpTask, d = lpDk, zone = lpZone;
+  closeLpMenu();
+  if (task) confirmDelete(JSON.stringify(task), d, zone);
+}
 function lpBump() {
   const task = lpTask, d = lpDk, zone = lpZone;
   closeLpMenu();
@@ -1317,7 +1325,7 @@ function showForm(prefill, existing) {
   const swatches = PRESETS.map(c=>`<div class="color-swatch ${c===selColor?'selected':''}" style="background:${c}" onclick="selColor(this,'${c}')"></div>`).join('');
 
   document.getElementById('sheet-body').innerHTML = `
-    <button class="back-btn-s" onclick="${currentCat?`pickCat(${JSON.stringify(currentCat)})`:'showCatPicker()'}">← Back</button>
+    ${isEdit ? '' : `<button class="back-btn-s" onclick="${currentCat ? `pickCat(${JSON.stringify(currentCat)})` : 'showCatPicker()'}">← Back</button>`}
     <div class="form-field"><label class="form-label">Task name</label><input class="form-input" id="task-name" placeholder="e.g. Take vitamins" value="${name}"></div>
     <div class="form-field"><label class="form-label">Time (optional)</label><input class="form-input" id="task-time" placeholder="e.g. 9am, Morning, Anytime" value="${t.time||''}"></div>
     <div class="form-field"><label class="form-label">Note (optional)</label><textarea class="form-textarea" id="task-detail">${t.detail||''}</textarea></div>
@@ -1401,7 +1409,7 @@ function saveTask() {
     }
 
     if(editingTask){
-      updateTask(taskObj);
+      updateTask(taskObj, pendingTask.d||viewDk, zone);
     } else {
       const d=pendingTask.d||viewDk;
       if(repMode==='yes'&&repeatDays.length>0){
@@ -1433,11 +1441,23 @@ function addTask(d,zone,task){
   if(viewMode==='structured'){const z=(zone==='All'||!zone)?'Morning':zone;if(!sched[d].structured[z].find(t=>t.id===task.id))sched[d].structured[z].push({...task});}
   else{if(!sched[d].simple.find(t=>t.id===task.id))sched[d].simple.push({...task});}
 }
-function updateTask(updated){
+function updateTask(updated, dayKey, newZone) {
   if(!sched)return;
   Object.keys(sched).forEach(d=>{
-    ZONES.forEach(z=>{if(sched[d].structured?.[z])sched[d].structured[z]=sched[d].structured[z].map(t=>t.id===updated.id?{...t,...updated}:t);});
-    if(sched[d].simple)sched[d].simple=sched[d].simple.map(t=>t.id===updated.id?{...t,...updated}:t);
+    ZONES.forEach(z=>{
+      if(!sched[d].structured?.[z])return;
+      const idx=sched[d].structured[z].findIndex(t=>t.id===updated.id);
+      if(idx<0)return;
+      if(d===dayKey&&viewMode==='structured'&&newZone&&newZone!==z&&ZONES.includes(newZone)){
+        const [removed]=sched[d].structured[z].splice(idx,1);
+        sched[d].structured[newZone].push({...removed,...updated,zone:newZone});
+      }else{
+        sched[d].structured[z][idx]={...sched[d].structured[z][idx],...updated};
+      }
+    });
+    if(sched[d].simple){
+      sched[d].simple=sched[d].simple.map(t=>t.id===updated.id?{...t,...updated}:t);
+    }
   });
 }
 function editTask(id,d,zone){
