@@ -169,6 +169,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .wins-event-icon{font-size:13px;flex-shrink:0;}
 .wins-event-text{font-size:13px;color:var(--purple);font-style:italic;}
 .wins-empty{text-align:center;padding:60px 24px;}
+.wins-badges-section{margin-bottom:24px;}
+.wins-badges-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+.wins-badges-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);}
+.wins-badges-count{font-size:11px;color:var(--muted);}
+.badge-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.badge-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;}
+.badge-card.earned{border-color:var(--teal);}
+.badge-card.locked{opacity:0.62;}
+.badge-icon{font-size:30px;line-height:1;margin-bottom:8px;display:block;}
+.badge-card.locked .badge-icon{filter:grayscale(1);opacity:0.65;}
+.badge-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.2;}
+.badge-card.locked .badge-name{color:var(--text2);}
+.badge-date{font-size:11px;color:var(--teal);font-weight:500;}
+.badge-hint{font-size:11px;color:var(--muted);line-height:1.35;padding:0 2px;}
+.wins-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin:8px 0 10px;}
 
 /* STREAKS */
 .streak-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
@@ -404,6 +419,8 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 <!-- WINS -->
 <div id="screen-wins" class="screen">
   <div class="page-header"><div><div class="page-title">Wins</div><div class="page-sub">Everything you've done. Proof on the hard days.</div></div></div>
+  <div id="wins-badges"></div>
+  <div id="wins-log"></div>
   <div id="wins-list"></div>
 </div>
 
@@ -527,7 +544,20 @@ let birthdays = JSON.parse(localStorage.getItem('ff4_bdays') || '[]');
 let userLibrary = JSON.parse(localStorage.getItem('ff4_library') || '{}');
 let viewMode = localStorage.getItem('ff4_view') || 'structured';
 let checkOffSound = localStorage.getItem('ff4_check_sound') === 'true';
+let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
 let audioCtx = null;
+
+const BADGE_DEFS = [
+  { id:'first_win', icon:'🌱', name:'First Win', hint:'Complete your first task', check:s=>s.tasksCompleted>=1 },
+  { id:'ten_wins', icon:'⭐', name:'Getting Momentum', hint:'Complete 10 tasks', check:s=>s.tasksCompleted>=10 },
+  { id:'thirty_wins', icon:'🏅', name:'Thirty Strong', hint:'Complete 30 tasks', check:s=>s.tasksCompleted>=30 },
+  { id:'fifty_wins', icon:'🎯', name:'Half Century', hint:'Complete 50 tasks', check:s=>s.tasksCompleted>=50 },
+  { id:'first_memory', icon:'✦', name:'Memory Keeper', hint:'Add your first memory', check:s=>s.memories>=1 },
+  { id:'five_memories', icon:'📸', name:'Storyteller', hint:'Add 5 memories', check:s=>s.memories>=5 },
+  { id:'streak_7', icon:'🔥', name:'Week Warrior', hint:'Reach a 7-day streak', check:s=>s.bestStreak>=7 },
+  { id:'streak_14', icon:'💫', name:'Two Week Flame', hint:'Reach a 14-day streak', check:s=>s.bestStreak>=14 },
+  { id:'perfect_day', icon:'✨', name:'Perfect Day', hint:'Complete every task in one day', check:s=>s.perfectDays>=1 },
+];
 let listsData = JSON.parse(localStorage.getItem('ff4_lists') || 'null');
 let activeListId = localStorage.getItem('ff4_active_list') || null;
 let listLpTask = null;
@@ -562,6 +592,7 @@ function save() {
   localStorage.setItem('ff4_library', JSON.stringify(userLibrary));
   localStorage.setItem('ff4_lists', JSON.stringify(listsData));
   if (activeListId) localStorage.setItem('ff4_active_list', activeListId);
+  localStorage.setItem('ff4_badges', JSON.stringify(badges));
 }
 
 function initLists() {
@@ -937,11 +968,102 @@ function updateProgress(tasks, d) {
   document.getElementById('prog-label').textContent=`${done} of ${tasks.length} done`;
 }
 
+// ── BADGES ─────────────────────────────────────────────────────
+function getDayTasks(d) {
+  const day = sched?.[d];
+  if (!day) return [];
+  let all = [...(day.simple || [])];
+  ZONES.forEach(z => { all = all.concat(day.structured?.[z] || []); });
+  const seen = new Set();
+  return all.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+}
+function sortedCheckDates() {
+  return Object.entries(checks).filter(([, v]) => v).map(([k]) => k.slice(0, 10)).sort();
+}
+function sortedMemoryDates() {
+  const dates = [];
+  Object.entries(wins).sort(([a], [b]) => a.localeCompare(b)).forEach(([d, w]) => {
+    (w.events || []).forEach(() => dates.push(d));
+  });
+  return dates;
+}
+function computeBadgeEarnDate(id) {
+  const checkDates = sortedCheckDates();
+  const memDates = sortedMemoryDates();
+  const nthCheck = n => checkDates[Math.min(n, checkDates.length - 1)] || todayDk;
+  const nthMem = n => memDates[Math.min(n, memDates.length - 1)] || todayDk;
+  if (id === 'first_win') return nthCheck(0);
+  if (id === 'ten_wins') return nthCheck(9);
+  if (id === 'thirty_wins') return nthCheck(29);
+  if (id === 'fifty_wins') return nthCheck(49);
+  if (id === 'first_memory') return nthMem(0);
+  if (id === 'five_memories') return nthMem(4);
+  if (id === 'streak_7' || id === 'streak_14') {
+    const hit = Object.values(streakData).find(s => s.best >= (id === 'streak_7' ? 7 : 14));
+    return hit?.lastDate || todayDk;
+  }
+  if (id === 'perfect_day') {
+    for (const d of Object.keys(sched || {}).sort()) {
+      const tasks = getDayTasks(d);
+      if (tasks.length && tasks.every(t => checks[`${d}_${t.id}`])) return d;
+    }
+  }
+  return todayDk;
+}
+function getBadgeStats() {
+  const tasksCompleted = Object.values(checks).filter(Boolean).length;
+  let memories = 0;
+  Object.values(wins).forEach(w => { memories += (w.events || []).length; });
+  const bestStreak = Math.max(0, ...Object.values(streakData).map(s => s.best || 0));
+  let perfectDays = 0;
+  Object.keys(sched || {}).forEach(d => {
+    const tasks = getDayTasks(d);
+    if (tasks.length && tasks.every(t => checks[`${d}_${t.id}`])) perfectDays++;
+  });
+  return { tasksCompleted, memories, bestStreak, perfectDays };
+}
+function checkBadges() {
+  const stats = getBadgeStats();
+  let changed = false;
+  BADGE_DEFS.forEach(b => {
+    if (!badges[b.id] && b.check(stats)) {
+      badges[b.id] = { earnedAt: computeBadgeEarnDate(b.id) };
+      changed = true;
+    }
+  });
+  if (changed) save();
+}
+function badgeDateLabel(dkStr) {
+  return fromDk(dkStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function renderBadges() {
+  const el = document.getElementById('wins-badges');
+  if (!el) return;
+  const earnedCount = BADGE_DEFS.filter(b => badges[b.id]).length;
+  el.innerHTML = `
+    <div class="wins-badges-section">
+      <div class="wins-badges-header">
+        <div class="wins-badges-title">Badges</div>
+        <div class="wins-badges-count">${earnedCount} of ${BADGE_DEFS.length}</div>
+      </div>
+      <div class="badge-grid">
+        ${BADGE_DEFS.map(b => {
+          const earned = badges[b.id];
+          if (earned) {
+            return `<div class="badge-card earned"><span class="badge-icon">${b.icon}</span><div class="badge-name">${b.name}</div><div class="badge-date">${badgeDateLabel(earned.earnedAt)}</div></div>`;
+          }
+          return `<div class="badge-card locked"><span class="badge-icon">${b.icon}</span><div class="badge-name">${b.name}</div><div class="badge-hint">${b.hint}</div></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 // ── LIVE WINS ────────────────────────────────────────────────────
 function addToWinsLive(d, name) {
   const date = dayLabel(fromDk(d));
   if (!wins[d]) wins[d] = { date, items:[], events:[] };
   if (!wins[d].items.includes(name)) wins[d].items.push(name);
+  checkBadges();
   save();
 }
 function removeFromWinsLive(d, name) {
@@ -962,6 +1084,7 @@ function updateStreak(taskId, name) {
   else s.current=1;
   s.best=Math.max(s.best,s.current);
   s.lastDate=today;
+  checkBadges();
   save();
 }
 function creditStreak(rootId) {
@@ -973,6 +1096,7 @@ function creditStreak(rootId) {
     else s.current=Math.max(1,s.current);
     s.best=Math.max(s.best,s.current);
     s.lastDate=yesterday;
+    checkBadges();
     save();
     renderStreaks();
   }
@@ -1261,6 +1385,7 @@ function saveEvent(){
   // Add to wins live
   if(!wins[d])wins[d]={date:dayLabel(fromDk(d)),items:[],events:[]};
   wins[d].events.push({text,tags:[...pendingTags]});
+  checkBadges();
   save();closeSheet();renderDay();
 }
 function deleteEvent(id,d){
@@ -1271,9 +1396,17 @@ function deleteEvent(id,d){
 
 // ── WINS ─────────────────────────────────────────────────────────
 function renderWins(){
+  checkBadges();
+  renderBadges();
+  const logEl=document.getElementById('wins-log');
   const el=document.getElementById('wins-list');
   const entries=Object.entries(wins).sort((a,b)=>b[0].localeCompare(a[0])).filter(([,w])=>w.items?.length||w.events?.length);
-  if(!entries.length){el.innerHTML=`<div class="wins-empty"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">Your wins start here</div><div style="font-size:13px;color:var(--muted);line-height:1.6">Every time you complete a task or add a life event, it shows up here. On the hard days — scroll back. The proof is right here.</div></div>`;return;}
+  if(!entries.length){
+    if(logEl)logEl.innerHTML='';
+    el.innerHTML=`<div class="wins-empty"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">Your wins start here</div><div style="font-size:13px;color:var(--muted);line-height:1.6">Every time you complete a task or add a life event, it shows up here. On the hard days — scroll back. The proof is right here.</div></div>`;
+    return;
+  }
+  if(logEl)logEl.innerHTML='<div class="wins-log-title">Your wins</div>';
   el.innerHTML=entries.map(([,w])=>`<div class="wins-entry"><div class="wins-date">${w.date}</div>${(w.items||[]).map(i=>`<div class="wins-item"><div class="wins-check">✓</div><div class="wins-text">${i}</div></div>`).join('')}${(w.events||[]).map(e=>`<div class="wins-event"><div class="wins-event-icon">✦</div><div class="wins-event-text">${e.text}</div></div>`).join('')}</div>`).join('');
 }
 
@@ -1645,7 +1778,7 @@ function updateSoundSettings(){
   const el=document.getElementById('check-sound-toggle');
   if(el)el.checked=checkOffSound;
 }
-function confirmClear(){if(confirm('Clear all tasks? This cannot be undone.')){sched={};checks={};wins={};save();renderDay();}}
+function confirmClear(){if(confirm('Clear all tasks? This cannot be undone.')){sched={};checks={};wins={};badges={};save();renderDay();}}
 
 // ── SCREEN ───────────────────────────────────────────────────────
 function showScreen(name,btn){
@@ -1666,6 +1799,7 @@ if (!sched) {
   renderDay();
   updateViewLabel();
   updateSoundSettings();
+  checkBadges();
   if (!isInstalledApp() && isIOSDevice() && location.protocol === 'file:') {
     setTimeout(openInstallHelp, 600);
   }
