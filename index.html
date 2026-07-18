@@ -17,7 +17,7 @@
   --anchor:#2979C8;--anchor-bg:#e8f1fb;
   --teal:#1D9E75;--flex-bg:#e1f5ee;
   --purple:#7F77DD;--amber:#D4750A;--pink:#E05A8A;--red:#E53935;--brown:#8B5E3C;--slate:#546E7A;
-  --radius:12px;--nav-h:64px;--bottom-bar-h:44px;
+  --radius:12px;--nav-h:64px;--bottom-bar-h:56px;
 }
 @media (prefers-color-scheme:dark) {
   :root{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
@@ -94,8 +94,8 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 /* BOTTOM BAR */
 .bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--card);border-top:0.5px solid var(--border);z-index:150;max-width:480px;margin:0 auto;}
 .bottom-bar.active{display:flex;align-items:center;justify-content:center;}
-.bottom-bar-btn{background:none;border:none;font-size:22px;cursor:pointer;padding:6px 20px;color:var(--text2);line-height:1;}
-.bottom-bar-btn:active{opacity:0.6;}
+.bottom-bar-btn{background:none;border:none;font-size:24px;cursor:pointer;padding:10px 32px;min-height:44px;min-width:64px;color:var(--text2);line-height:1;border-radius:10px;}
+.bottom-bar-btn:active{background:var(--bg);opacity:1;}
 
 /* VIEW PICKER */
 .view-picker-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:350;}
