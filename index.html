@@ -657,8 +657,12 @@ const THEMES = {
   sunset:   { id: 'sunset',   name: 'Sunset',   teal: '#D4750A', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#fef3e2', anchorBgDark: '#3d1a28', flexBgDark: '#3d2a10' },
   lavender: { id: 'lavender', name: 'Lavender', teal: '#7F77DD', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#eeedf9', anchorBgDark: '#3d1a28', flexBgDark: '#2a2848' },
   midnight: { id: 'midnight', name: 'Midnight', teal: '#546E7A', anchor: '#1D9E75', anchorBg: '#e1f5ee', flexBg: '#eceff1', anchorBgDark: '#0d3526', flexBgDark: '#263238' },
+  aurora:   { id: 'aurora',   name: 'Aurora',   teal: '#1D9E75', anchor: '#7F77DD', anchorBg: '#eeedf9', flexBg: '#e1f5ee', anchorBgDark: '#2a2848', flexBgDark: '#0d3526' },
+  crimson:  { id: 'crimson',  name: 'Crimson',  teal: '#212121', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#f0f0f0', anchorBgDark: '#3d1515', flexBgDark: '#1a1a1a' },
+  goldrush: { id: 'goldrush', name: 'Gold Rush', teal: '#F9A825', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#fff8e1', anchorBgDark: '#3d1515', flexBgDark: '#3d2f00' },
+  'midnight-blue': { id: 'midnight-blue', name: 'Midnight Blue', teal: '#F9A825', anchor: '#1565C0', anchorBg: '#e3f2fd', flexBg: '#fff8e1', anchorBgDark: '#0d2744', flexBgDark: '#3d2f00' },
 };
-const THEME_ORDER = ['ocean', 'sunset', 'lavender', 'midnight'];
+const THEME_ORDER = ['ocean', 'sunset', 'lavender', 'midnight', 'aurora', 'crimson', 'goldrush', 'midnight-blue'];
 
 function applyTheme(id) {
   const t = THEMES[id] || THEMES.ocean;
