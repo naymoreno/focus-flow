@@ -380,6 +380,12 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 .auth-submit{width:100%;padding:14px;border-radius:var(--radius);background:var(--teal);color:#fff;border:none;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px;}
 .auth-submit:disabled{opacity:0.6;cursor:default;}
 .auth-error{font-size:13px;color:var(--red);margin-top:12px;line-height:1.4;min-height:18px;}
+.form-msg{font-size:13px;margin-top:8px;line-height:1.4;min-height:18px;}
+.form-msg.error{color:var(--red);}
+.form-msg.success{color:var(--teal);}
+.account-section{margin-bottom:22px;padding-bottom:20px;border-bottom:0.5px solid var(--border);}
+.account-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.account-delete-btn{width:100%;padding:14px;border-radius:var(--radius);background:transparent;color:#ff4444;border:none;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;}
 .auth-note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -531,7 +537,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="settings-section">Birthdays</div>
   <div class="settings-item" onclick="openBirthdayManager()"><span class="settings-item-label">🎂 Manage birthdays</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Account</div>
-  <div class="settings-item" style="cursor:default"><span class="settings-item-label" id="account-email-label">Signed in</span></div>
+  <div class="settings-item" onclick="openManageAccount()"><span class="settings-item-label">Manage Account</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="signOut()"><span class="settings-item-label" style="color:#ff4444">Sign out</span></div>
   <div class="settings-section">Data</div>
   <div class="settings-item" onclick="confirmClear()"><span class="settings-item-label" style="color:#ff4444">🗑 Clear all tasks</span><span class="settings-item-arrow">›</span></div>
@@ -837,9 +843,117 @@ async function signOut() {
   showAuthScreen();
 }
 
-function updateAccountLabel() {
-  const el = document.getElementById('account-email-label');
-  if (el && currentUser?.email) el.textContent = currentUser.email;
+function updateAccountLabel() {}
+
+function openManageAccount() {
+  const email = currentUser?.email || '';
+  document.getElementById('sheet-title').textContent = 'Manage Account';
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="account-section">
+      <div class="form-field"><label class="form-label">Change email address</label>
+        <input class="form-input" id="account-email-input" type="email" value="${email.replace(/"/g, '&quot;')}" autocomplete="email">
+        <div class="form-msg" id="account-email-msg"></div>
+      </div>
+      <button class="save-btn" id="account-email-btn" onclick="saveAccountEmail()">Save</button>
+    </div>
+    <div class="account-section">
+      <div class="form-field"><label class="form-label">New password</label>
+        <input class="form-input" id="account-new-password" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+      </div>
+      <div class="form-field"><label class="form-label">Confirm new password</label>
+        <input class="form-input" id="account-confirm-password" type="password" autocomplete="new-password" placeholder="Re-enter new password">
+        <div class="form-msg" id="account-password-msg"></div>
+      </div>
+      <button class="save-btn" id="account-password-btn" onclick="saveAccountPassword()">Save</button>
+    </div>
+    <button class="account-delete-btn" onclick="confirmDeleteAccount()">Delete account</button>`;
+  openSheet();
+}
+
+function setAccountMsg(elId, text, type) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'form-msg' + (type ? ' ' + type : '');
+}
+
+async function saveAccountEmail() {
+  const input = document.getElementById('account-email-input');
+  const btn = document.getElementById('account-email-btn');
+  const email = input?.value.trim();
+  setAccountMsg('account-email-msg', '', '');
+  if (!email) { setAccountMsg('account-email-msg', 'Please enter an email address.', 'error'); return; }
+  if (email === currentUser?.email) { setAccountMsg('account-email-msg', 'That is already your email.', 'error'); return; }
+  btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({ email });
+    if (error) throw error;
+    if (data.user) currentUser = data.user;
+    setAccountMsg('account-email-msg', 'Email updated. Check your inbox if confirmation is required.', 'success');
+  } catch (e) {
+    setAccountMsg('account-email-msg', e.message || 'Could not update email.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function saveAccountPassword() {
+  const newPw = document.getElementById('account-new-password')?.value || '';
+  const confirmPw = document.getElementById('account-confirm-password')?.value || '';
+  const btn = document.getElementById('account-password-btn');
+  setAccountMsg('account-password-msg', '', '');
+  if (!newPw || !confirmPw) { setAccountMsg('account-password-msg', 'Please fill in both password fields.', 'error'); return; }
+  if (newPw.length < 6) { setAccountMsg('account-password-msg', 'Password must be at least 6 characters.', 'error'); return; }
+  if (newPw !== confirmPw) { setAccountMsg('account-password-msg', 'Passwords do not match.', 'error'); return; }
+  btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ password: newPw });
+    if (error) throw error;
+    document.getElementById('account-new-password').value = '';
+    document.getElementById('account-confirm-password').value = '';
+    setAccountMsg('account-password-msg', 'Password updated successfully.', 'success');
+  } catch (e) {
+    setAccountMsg('account-password-msg', e.message || 'Could not update password.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function confirmDeleteAccount() {
+  document.getElementById('sheet-title').textContent = 'Delete account';
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="del-confirm">
+      <div class="del-title">Delete your account?</div>
+      <div class="del-sub">This permanently deletes your account and all synced data. This cannot be undone.</div>
+      <div class="form-msg" id="account-delete-msg"></div>
+      <div class="del-btns">
+        <button class="del-all" id="account-delete-btn" onclick="deleteAccount()">Delete account permanently</button>
+        <button class="del-cancel" onclick="openManageAccount()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function clearAllUserData() {
+  ['ff4_sched','ff4_checks','ff4_wins','ff4_streaks','ff4_lists','ff4_bdays','ff4_library','ff4_badges','ff4_active_list','ff4_fired_reminders'].forEach(k => localStorage.removeItem(k));
+  sched = null; checks = {}; wins = {}; streakData = {}; birthdays = []; userLibrary = {}; listsData = null; badges = {}; activeListId = null;
+}
+
+async function deleteAccount() {
+  const btn = document.getElementById('account-delete-btn');
+  setAccountMsg('account-delete-msg', '', '');
+  btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.rpc('delete_user_account');
+    if (error) throw error;
+    clearAllUserData();
+    try { await supabaseClient.auth.signOut(); } catch (e) {}
+    currentUser = null;
+    closeSheet();
+    showAuthScreen();
+  } catch (e) {
+    setAccountMsg('account-delete-msg', e.message || 'Could not delete account. Please try again.', 'error');
+    btn.disabled = false;
+  }
 }
 
 function startApp() {
