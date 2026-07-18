@@ -219,6 +219,14 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
 .settings-item-label{font-size:15px;color:var(--text);}
 .settings-item-arrow{color:var(--muted);font-size:18px;}
+.theme-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
+.theme-option{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:rgba(0,0,0,0.1);}
+.theme-option.selected{border-color:var(--anchor);background:var(--anchor-bg);}
+.theme-swatches{display:flex;gap:6px;flex-shrink:0;}
+.theme-swatch{width:22px;height:22px;border-radius:50%;border:2px solid rgba(0,0,0,0.08);}
+.theme-name{font-size:15px;font-weight:500;color:var(--text);flex:1;}
+.theme-check{font-size:16px;color:var(--anchor);font-weight:700;opacity:0;flex-shrink:0;width:20px;text-align:center;}
+.theme-option.selected .theme-check{opacity:1;}
 .nudge-voice-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
 .nudge-voice-card{padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);cursor:pointer;transition:all 0.15s;}
 .nudge-voice-card.selected{border-color:var(--anchor);background:var(--anchor-bg);}
@@ -508,6 +516,8 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="settings-item" id="install-settings-item" onclick="openInstallHelp()"><span class="settings-item-label">📲 Add to Home Screen</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="restartOnboarding()"><span class="settings-item-label">🔄 Redo walkthrough</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="toggleView()"><span class="settings-item-label" id="view-label">📋 View: Structured</span><span class="settings-item-arrow">›</span></div>
+  <div class="settings-section">Appearance</div>
+  <div class="theme-list" id="theme-picker"></div>
   <div class="settings-section">Sound</div>
   <div class="settings-item" style="cursor:default">
     <span class="settings-item-label">✓ Check-off sound</span>
@@ -639,7 +649,53 @@ let checkOffSound = localStorage.getItem('ff4_check_sound') === 'true';
 let notificationsEnabled = localStorage.getItem('ff4_notifications') === 'true';
 let dyslexicFont = localStorage.getItem('ff4_dyslexic_font') === 'true';
 let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
+let theme = localStorage.getItem('ff4_theme') || 'ocean';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
+
+const THEMES = {
+  ocean:    { id: 'ocean',    name: 'Ocean',    teal: '#1D9E75', anchor: '#2979C8', anchorBg: '#e8f1fb', flexBg: '#e1f5ee', anchorBgDark: '#0c2d50', flexBgDark: '#0d3526' },
+  sunset:   { id: 'sunset',   name: 'Sunset',   teal: '#D4750A', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#fef3e2', anchorBgDark: '#3d1a28', flexBgDark: '#3d2a10' },
+  lavender: { id: 'lavender', name: 'Lavender', teal: '#7F77DD', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#eeedf9', anchorBgDark: '#3d1a28', flexBgDark: '#2a2848' },
+  midnight: { id: 'midnight', name: 'Midnight', teal: '#546E7A', anchor: '#1D9E75', anchorBg: '#e1f5ee', flexBg: '#eceff1', anchorBgDark: '#0d3526', flexBgDark: '#263238' },
+};
+const THEME_ORDER = ['ocean', 'sunset', 'lavender', 'midnight'];
+
+function applyTheme(id) {
+  const t = THEMES[id] || THEMES.ocean;
+  theme = t.id;
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const root = document.documentElement;
+  root.style.setProperty('--teal', t.teal);
+  root.style.setProperty('--anchor', t.anchor);
+  root.style.setProperty('--anchor-bg', dark ? t.anchorBgDark : t.anchorBg);
+  root.style.setProperty('--flex-bg', dark ? t.flexBgDark : t.flexBg);
+  localStorage.setItem('ff4_theme', t.id);
+}
+
+function renderThemePicker() {
+  const el = document.getElementById('theme-picker');
+  if (!el) return;
+  el.innerHTML = THEME_ORDER.map(id => {
+    const t = THEMES[id];
+    const selected = theme === id;
+    return `<div class="theme-option ${selected ? 'selected' : ''}" onclick="pickTheme('${id}')">
+      <div class="theme-swatches">
+        <div class="theme-swatch" style="background:${t.teal}"></div>
+        <div class="theme-swatch" style="background:${t.anchor}"></div>
+      </div>
+      <div class="theme-name">${t.name}${id === 'ocean' ? ' (default)' : ''}</div>
+      <div class="theme-check">✓</div>
+    </div>`;
+  }).join('');
+}
+
+function pickTheme(id) {
+  applyTheme(id);
+  renderThemePicker();
+}
+
+applyTheme(theme);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(theme));
 let audioCtx = null;
 
 const NUDGE_VOICES = [
@@ -2669,7 +2725,7 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateAccountLabel(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateAccountLabel(); renderThemePicker(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
