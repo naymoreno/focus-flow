@@ -363,12 +363,59 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 .welcome-card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;}
 .welcome-card-sub{font-size:12px;color:var(--muted);line-height:1.4;}
 .welcome-go-btn{width:100%;padding:14px;border-radius:var(--radius);background:var(--anchor);color:#fff;border:none;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;}
+
+/* AUTH */
+.auth-wrap{max-width:400px;margin:0 auto;padding:56px 24px;min-height:100vh;display:flex;flex-direction:column;justify-content:center;}
+.auth-header{text-align:center;margin-bottom:28px;}
+.auth-logo{width:52px;height:52px;border-radius:14px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 12px;}
+.auth-title{font-size:28px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.auth-sub{font-size:14px;color:var(--muted);line-height:1.5;}
+.auth-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:22px;}
+.auth-toggle{display:flex;gap:8px;margin-bottom:18px;}
+.auth-toggle-btn{flex:1;padding:10px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--bg);color:var(--text2);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.auth-toggle-btn.active{border-color:var(--teal);background:var(--flex-bg);color:var(--teal);font-weight:600;}
+.auth-field{margin-bottom:14px;}
+.auth-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.auth-input{width:100%;padding:12px 14px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--bg);color:var(--text);font-family:inherit;font-size:15px;outline:none;}
+.auth-submit{width:100%;padding:14px;border-radius:var(--radius);background:var(--teal);color:#fff;border:none;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-submit:disabled{opacity:0.6;cursor:default;}
+.auth-error{font-size:13px;color:var(--red);margin-top:12px;line-height:1.4;min-height:18px;}
+.auth-note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
+<!-- AUTH -->
+<div id="auth-screen" class="fullscreen active">
+  <div class="auth-wrap">
+    <div class="auth-header">
+      <div class="auth-logo">FF</div>
+      <div class="auth-title">Focus Flow</div>
+      <div class="auth-sub">Sign in to sync your day across devices.<br>Works offline on this device too.</div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-toggle">
+        <button type="button" class="auth-toggle-btn active" id="auth-login-tab" onclick="setAuthMode('login')">Log in</button>
+        <button type="button" class="auth-toggle-btn" id="auth-signup-tab" onclick="setAuthMode('signup')">Sign up</button>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="auth-email">Email</label>
+        <input class="auth-input" id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="auth-password">Password</label>
+        <input class="auth-input" id="auth-password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+      </div>
+      <button type="button" class="auth-submit" id="auth-submit-btn" onclick="submitAuth()">Log in</button>
+      <div class="auth-error" id="auth-error"></div>
+    </div>
+    <div class="auth-note">Your data is saved locally and synced when you're online.</div>
+  </div>
+</div>
+
 <!-- ONBOARDING -->
-<div id="onboarding" class="fullscreen active">
+<div id="onboarding" class="fullscreen">
   <div class="ob-wrap">
     <div class="ob-top" id="ob-content"></div>
     <div class="ob-bottom" id="ob-actions"></div>
@@ -483,6 +530,9 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="nudge-voice-note">Designed to reduce letter-flipping for dyslexic readers. Available for anyone who finds it easier to read.</div>
   <div class="settings-section">Birthdays</div>
   <div class="settings-item" onclick="openBirthdayManager()"><span class="settings-item-label">🎂 Manage birthdays</span><span class="settings-item-arrow">›</span></div>
+  <div class="settings-section">Account</div>
+  <div class="settings-item" style="cursor:default"><span class="settings-item-label" id="account-email-label">Signed in</span></div>
+  <div class="settings-item" onclick="signOut()"><span class="settings-item-label" style="color:#ff4444">Sign out</span></div>
   <div class="settings-section">Data</div>
   <div class="settings-item" onclick="confirmClear()"><span class="settings-item-label" style="color:#ff4444">🗑 Clear all tasks</span><span class="settings-item-arrow">›</span></div>
 </div>
@@ -632,6 +682,214 @@ let monthDate = new Date(NOW);
 let searchOpen = false;
 let currentCat = null;
 
+// ── SUPABASE ─────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://cacrnxpwycuplnlrzprf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhY3JueHB3eWN1cGxubHJ6cHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzgxODgsImV4cCI6MjA5OTkxNDE4OH0.40Jr3m0eWQ0tsr0x5qpIrizFsemRTb8noHrztvpz0kw';
+let supabaseClient = null;
+let currentUser = null;
+let appStarted = false;
+let authMode = 'login';
+let cloudSyncTimer = null;
+
+function initSupabaseClient() {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+function reloadStateFromCache() {
+  sched = JSON.parse(localStorage.getItem('ff4_sched') || 'null');
+  checks = JSON.parse(localStorage.getItem('ff4_checks') || '{}');
+  wins = JSON.parse(localStorage.getItem('ff4_wins') || '{}');
+  streakData = JSON.parse(localStorage.getItem('ff4_streaks') || '{}');
+  birthdays = JSON.parse(localStorage.getItem('ff4_bdays') || '[]');
+  userLibrary = JSON.parse(localStorage.getItem('ff4_library') || '{}');
+  listsData = JSON.parse(localStorage.getItem('ff4_lists') || 'null');
+  badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
+  activeListId = localStorage.getItem('ff4_active_list') || null;
+}
+
+function hasLocalSyncData() {
+  const keys = ['ff4_sched','ff4_checks','ff4_wins','ff4_streaks','ff4_lists','ff4_bdays','ff4_library','ff4_badges'];
+  return keys.some(k => {
+    const v = localStorage.getItem(k);
+    return v && v !== 'null' && v !== '{}' && v !== '[]';
+  });
+}
+
+function applyRemoteData(row) {
+  if (row.sched !== undefined && row.sched !== null) localStorage.setItem('ff4_sched', JSON.stringify(row.sched));
+  if (row.checks !== undefined) localStorage.setItem('ff4_checks', JSON.stringify(row.checks || {}));
+  if (row.wins !== undefined) localStorage.setItem('ff4_wins', JSON.stringify(row.wins || {}));
+  if (row.streaks !== undefined) localStorage.setItem('ff4_streaks', JSON.stringify(row.streaks || {}));
+  if (row.lists !== undefined && row.lists !== null) localStorage.setItem('ff4_lists', JSON.stringify(row.lists));
+  if (row.bdays !== undefined) localStorage.setItem('ff4_bdays', JSON.stringify(row.bdays || []));
+  if (row.library !== undefined) localStorage.setItem('ff4_library', JSON.stringify(row.library || {}));
+  if (row.badges !== undefined) localStorage.setItem('ff4_badges', JSON.stringify(row.badges || {}));
+  reloadStateFromCache();
+}
+
+function collectSyncPayload() {
+  return {
+    user_id: currentUser.id,
+    sched,
+    checks,
+    wins,
+    streaks: streakData,
+    lists: listsData,
+    bdays: birthdays,
+    library: userLibrary,
+    badges,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function syncToSupabase() {
+  if (!currentUser || !supabaseClient) return;
+  if (!navigator.onLine) return;
+  try {
+    const { error } = await supabaseClient.from('user_data').upsert(collectSyncPayload(), { onConflict: 'user_id' });
+    if (error) console.error('Cloud sync failed:', error.message);
+  } catch (e) {
+    console.error('Cloud sync failed:', e);
+  }
+}
+
+function queueCloudSync() {
+  if (!currentUser) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(syncToSupabase, 900);
+}
+
+async function syncOnLogin(user) {
+  currentUser = user;
+  if (!navigator.onLine) return;
+  try {
+    const { data: remote, error } = await supabaseClient
+      .from('user_data')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (remote) {
+      applyRemoteData(remote);
+    } else if (hasLocalSyncData()) {
+      await syncToSupabase();
+    }
+  } catch (e) {
+    console.error('Login sync failed:', e);
+  }
+}
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').classList.add('active');
+  document.getElementById('onboarding').classList.remove('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+}
+
+function hideAuthScreen() {
+  document.getElementById('auth-screen').classList.remove('active');
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('auth-login-tab').classList.toggle('active', mode === 'login');
+  document.getElementById('auth-signup-tab').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-submit-btn').textContent = mode === 'login' ? 'Log in' : 'Sign up';
+  document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  const btn = document.getElementById('auth-submit-btn');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Please enter email and password.'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  btn.disabled = true;
+  try {
+    const result = authMode === 'login'
+      ? await supabaseClient.auth.signInWithPassword({ email, password })
+      : await supabaseClient.auth.signUp({ email, password });
+    if (result.error) throw result.error;
+    if (authMode === 'signup' && !result.data.session) {
+      errEl.textContent = 'Account created! Check your email to confirm, then log in.';
+      setAuthMode('login');
+      return;
+    }
+    currentUser = result.data.user;
+    await syncOnLogin(result.data.user);
+    startApp();
+  } catch (e) {
+    errEl.textContent = e.message || 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function signOut() {
+  if (!confirm('Sign out? Your data stays cached on this device.')) return;
+  try {
+    await supabaseClient.auth.signOut();
+  } catch (e) {}
+  currentUser = null;
+  showAuthScreen();
+}
+
+function updateAccountLabel() {
+  const el = document.getElementById('account-email-label');
+  if (el && currentUser?.email) el.textContent = currentUser.email;
+}
+
+function startApp() {
+  hideAuthScreen();
+  if (appStarted) {
+    reloadStateFromCache();
+    initLists();
+    renderDay();
+    updateAccountLabel();
+    return;
+  }
+  appStarted = true;
+  initLists();
+  applyDyslexicFont();
+  if (!sched) {
+    startOnboarding();
+    updateAccessibilitySettings();
+    updateNudgeVoiceLabel();
+  } else {
+    document.getElementById('onboarding').classList.remove('active');
+    document.getElementById('bottom-nav').style.display = 'flex';
+    showScreen('tracker', document.getElementById('nav-tracker'));
+    renderDay();
+    updateViewLabel();
+    updateSoundSettings();
+    updateNotificationSettings();
+    updateAccessibilitySettings();
+    updateNudgeVoiceLabel();
+    checkBadges();
+    initReminders();
+    maybeShowInstallPrompt();
+  }
+  updateAccountLabel();
+}
+
+async function bootApp() {
+  initSupabaseClient();
+  window.addEventListener('online', () => { if (currentUser) syncToSupabase(); });
+  document.getElementById('auth-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+  });
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session?.user) {
+    await syncOnLogin(session.user);
+    startApp();
+  } else {
+    showAuthScreen();
+  }
+}
+
 function save() {
   localStorage.setItem('ff4_sched', JSON.stringify(sched));
   localStorage.setItem('ff4_checks', JSON.stringify(checks));
@@ -642,6 +900,7 @@ function save() {
   localStorage.setItem('ff4_lists', JSON.stringify(listsData));
   if (activeListId) localStorage.setItem('ff4_active_list', activeListId);
   localStorage.setItem('ff4_badges', JSON.stringify(badges));
+  queueCloudSync();
 }
 
 function initLists() {
@@ -2296,30 +2555,11 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateAccountLabel(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
-initLists();
-applyDyslexicFont();
-if (!sched) {
-  startOnboarding();
-  updateAccessibilitySettings();
-  updateNudgeVoiceLabel();
-} else {
-  document.getElementById('onboarding').classList.remove('active');
-  document.getElementById('bottom-nav').style.display = 'flex';
-  showScreen('tracker', document.getElementById('nav-tracker'));
-  renderDay();
-  updateViewLabel();
-  updateSoundSettings();
-  updateNotificationSettings();
-  updateAccessibilitySettings();
-  updateNudgeVoiceLabel();
-  checkBadges();
-  initReminders();
-  maybeShowInstallPrompt();
-}
+bootApp();
 </script>
 </body>
 </html>
