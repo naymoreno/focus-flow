@@ -17,7 +17,7 @@
   --anchor:#2979C8;--anchor-bg:#e8f1fb;
   --teal:#1D9E75;--flex-bg:#e1f5ee;
   --purple:#7F77DD;--amber:#D4750A;--pink:#E05A8A;--red:#E53935;--brown:#8B5E3C;--slate:#546E7A;
-  --radius:12px;--nav-h:64px;--bottom-bar-h:56px;
+  --radius:12px;--nav-h:64px;--bottom-bar-h:62px;
 }
 @media (prefers-color-scheme:dark) {
   :root{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
@@ -29,7 +29,7 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 
 .screen{display:none;padding:16px 16px calc(24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
 .screen.active{display:block;}
-#screen-tracker.active{padding-bottom:calc(24px + var(--bottom-bar-h) + env(safe-area-inset-bottom));}
+#screen-tracker.active,#screen-lists.active{padding-bottom:calc(24px + var(--bottom-bar-h) + env(safe-area-inset-bottom));}
 .fullscreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;}
 .fullscreen.active{display:block;}
 
@@ -93,9 +93,13 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 
 /* BOTTOM BAR */
 .bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--card);border-top:0.5px solid var(--border);z-index:150;max-width:480px;margin:0 auto;}
-.bottom-bar.active{display:flex;align-items:center;justify-content:center;}
-.bottom-bar-btn{background:none;border:none;font-size:24px;cursor:pointer;padding:10px 32px;min-height:44px;min-width:64px;color:var(--text2);line-height:1;border-radius:10px;}
+.bottom-bar.active{display:flex;align-items:center;justify-content:center;gap:8px;}
+.bottom-bar-btn{background:none;border:none;font-size:24px;cursor:pointer;padding:10px 28px;min-height:46px;min-width:56px;color:var(--text2);line-height:1;border-radius:10px;flex:1;max-width:120px;}
+.bottom-bar-btn.active{color:var(--anchor);background:var(--anchor-bg);}
 .bottom-bar-btn:active{background:var(--bg);opacity:1;}
+.bottom-bar-btn.active:active{background:var(--anchor-bg);opacity:0.85;}
+.screen-back-btn{display:none;background:none;border:none;color:var(--anchor);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;padding:0;margin-bottom:10px;text-align:left;}
+.screen-back-btn.show{display:block;}
 
 /* VIEW PICKER */
 .view-picker-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:350;}
@@ -576,6 +580,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- LISTS -->
 <div id="screen-lists" class="screen">
+  <button class="screen-back-btn" id="lists-back-btn" onclick="goBackToPreviousScreen()">← Back</button>
   <div class="page-header">
     <div>
       <div class="page-title">Lists</div>
@@ -589,6 +594,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- WINS -->
 <div id="screen-wins" class="screen">
+  <button class="screen-back-btn" id="wins-back-btn" onclick="goBackToPreviousScreen()">← Back</button>
   <div class="page-header"><div><div class="page-title">Wins</div><div class="page-sub">Everything you've done. Proof on the hard days.</div></div></div>
   <div id="wins-badges"></div>
   <div id="wins-log"></div>
@@ -597,15 +603,16 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- STREAKS -->
 <div id="screen-streaks" class="screen">
+  <button class="screen-back-btn" id="streaks-back-btn" onclick="goBackToPreviousScreen()">← Back</button>
   <div class="page-header"><div><div class="page-title">Streaks</div><div class="page-sub">Your habits, your consistency.</div></div></div>
   <div id="streaks-list"></div>
 </div>
 
 <!-- SETTINGS -->
 <div id="screen-settings" class="screen">
+  <button class="screen-back-btn" id="settings-back-btn" onclick="goBackToPreviousScreen()">← Back</button>
   <div class="page-header">
     <div><div class="page-title">Settings</div></div>
-    <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close settings">✕</button>
   </div>
   <div class="settings-section">App</div>
   <div class="settings-item" id="install-settings-item" onclick="openInstallHelp()"><span class="settings-item-label">📲 Add to Home Screen</span><span class="settings-item-arrow">›</span></div>
@@ -713,7 +720,8 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- BOTTOM BAR + VIEW PICKER -->
 <div class="bottom-bar" id="bottom-bar">
-  <button class="bottom-bar-btn" onclick="openViewPicker()" aria-label="Calendar view">📅</button>
+  <button class="bottom-bar-btn" id="bottom-bar-calendar" onclick="openViewPicker()" aria-label="Calendar view">📅</button>
+  <button class="bottom-bar-btn" id="bottom-bar-lists" onclick="navToListsFromBar()" aria-label="Lists">📝</button>
 </div>
 <div class="view-picker-overlay" id="view-picker-overlay" onclick="closeViewPicker()"></div>
 <div class="view-picker-sheet" id="view-picker-sheet" onclick="event.stopPropagation()">
@@ -1333,6 +1341,7 @@ function goToMyDay() { showScreen('tracker'); renderDay(); }
 
 // ── NAV MENU ─────────────────────────────────────────────────────
 function openNavMenu() {
+  previousScreen = currentScreen;
   document.getElementById('sheet-title').textContent = 'Menu';
   const views = ['day', 'week', 'month', 'year'];
   const viewLabels = { day: 'Day', week: 'Week', month: 'Month', year: 'Year' };
@@ -1357,7 +1366,6 @@ function navSetView(view) {
 function navToScreen(name) {
   closeSheet();
   closeViewPicker();
-  if (name === 'settings') previousScreen = currentScreen === 'settings' ? previousScreen : currentScreen;
   showScreen(name);
   if (name === 'tracker') renderDay();
   else if (name === 'lists') renderLists();
@@ -1365,15 +1373,46 @@ function navToScreen(name) {
   else if (name === 'streaks') renderStreaks();
 }
 
+function getScreenLabel(name) {
+  const labels = { tracker: 'My Day', lists: 'Lists', wins: 'Wins', streaks: 'Streaks', settings: 'Settings', welcome: 'Welcome' };
+  return labels[name] || 'Back';
+}
+function updateScreenBackButtons() {
+  const label = getScreenLabel(previousScreen);
+  ['lists', 'wins', 'streaks', 'settings'].forEach(s => {
+    const btn = document.getElementById(s + '-back-btn');
+    if (!btn) return;
+    btn.textContent = `← ${label}`;
+    btn.classList.toggle('show', currentScreen === s && previousScreen !== s);
+  });
+}
+function goBackToPreviousScreen() {
+  const target = previousScreen || 'tracker';
+  showScreen(target);
+  if (target === 'tracker') renderDay();
+  else if (target === 'lists') renderLists();
+  else if (target === 'wins') renderWins();
+  else if (target === 'streaks') renderStreaks();
+}
+function closeSettings() { goBackToPreviousScreen(); }
+
 // ── BOTTOM BAR + VIEW PICKER ─────────────────────────────────────
 function updateBottomBar() {
   const bar = document.getElementById('bottom-bar');
   const chromeVisible = document.getElementById('app-chrome').style.display !== 'none';
-  const onTracker = currentScreen === 'tracker';
-  bar.classList.toggle('active', chromeVisible && onTracker);
+  const showBar = chromeVisible && (currentScreen === 'tracker' || currentScreen === 'lists');
+  bar.classList.toggle('active', showBar);
+  document.getElementById('bottom-bar-calendar')?.classList.toggle('active', currentScreen === 'tracker');
+  document.getElementById('bottom-bar-lists')?.classList.toggle('active', currentScreen === 'lists');
   document.querySelectorAll('.view-picker-opt').forEach(btn => {
     btn.classList.toggle('selected', btn.getAttribute('data-view') === calendarView);
   });
+}
+function navToListsFromBar() {
+  closeViewPicker();
+  if (currentScreen !== 'lists') previousScreen = currentScreen;
+  showScreen('lists');
+  renderLists();
 }
 function openViewPicker() {
   document.querySelectorAll('.view-picker-opt').forEach(btn => {
@@ -1389,6 +1428,7 @@ function closeViewPicker() {
 function pickViewFromBar(view) {
   closeViewPicker();
   previousCalendarView = null;
+  if (currentScreen !== 'tracker') previousScreen = currentScreen;
   showScreen('tracker');
   setCalendarView(view);
 }
@@ -1410,14 +1450,6 @@ function goToDayFromCalendar(dkey, fromView) {
   previousCalendarView = fromView;
   showScreen('tracker');
   setCalendarView('day');
-}
-
-function closeSettings() {
-  showScreen(previousScreen);
-  if (previousScreen === 'tracker') renderDay();
-  else if (previousScreen === 'lists') renderLists();
-  else if (previousScreen === 'wins') renderWins();
-  else if (previousScreen === 'streaks') renderStreaks();
 }
 
 // ── SEARCH ───────────────────────────────────────────────────────
@@ -3328,6 +3360,7 @@ function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   updateBottomBar();
+  updateScreenBackButtons();
   if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateThemeLabel(); updateThemeModeUI(); updateAccountLabel(); }
 }
 
