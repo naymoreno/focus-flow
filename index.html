@@ -25,18 +25,13 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !important;}
 
-.screen{display:none;padding:16px 16px calc(72px + 24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
+.screen{display:none;padding:16px 16px calc(24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
 .screen.active{display:block;}
 .fullscreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;}
 .fullscreen.active{display:block;}
 
-/* NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);height:calc(72px + env(safe-area-inset-bottom));}
-.nav-btn{flex:1;border:none;background:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:10px;font-weight:500;transition:color 0.15s;padding:8px 1px;}
-.nav-btn.active{color:var(--anchor);}
-.nav-icon{font-size:22px;line-height:1;}
-
 /* HEADER */
+#app-chrome{display:none;max-width:480px;margin:0 auto;padding:16px 16px 0;}
 .app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .app-logo{display:flex;align-items:center;gap:8px;}
 .logo-mark{width:28px;height:28px;border-radius:8px;background:var(--anchor);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.5px;flex-shrink:0;}
@@ -96,6 +91,14 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .calendar-view-toggle::-webkit-scrollbar{display:none;}
 .view-pill{flex:1;flex-shrink:0;padding:5px 8px;border-radius:99px;border:0.5px solid var(--border);font-size:11px;font-weight:500;cursor:pointer;background:var(--card);color:var(--text2);white-space:nowrap;font-family:inherit;min-width:0;transition:all 0.15s;}
 .view-pill.active{background:var(--anchor);color:#fff;border-color:var(--anchor);}
+
+/* NAV MENU */
+.nav-menu-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);padding:4px 0 10px;}
+.nav-menu-view-toggle{display:flex;gap:4px;margin-bottom:16px;}
+.nav-menu-item{display:flex;align-items:center;gap:14px;width:100%;padding:16px 0;border:none;background:none;font-family:inherit;font-size:16px;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border);text-align:left;}
+.nav-menu-item:last-child{border-bottom:none;}
+.nav-menu-item:active{background:var(--bg);}
+.nav-menu-icon{font-size:20px;width:28px;text-align:center;}
 
 /* MULTI-DAY COLUMNS */
 .multiday-scroll{display:flex;gap:8px;}
@@ -507,28 +510,26 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   </div>
 </div>
 
-<!-- MY DAY -->
-<div id="screen-tracker" class="screen">
+<!-- APP CHROME -->
+<div id="app-chrome" style="display:none">
   <div class="app-header">
     <div class="app-logo">
       <div class="logo-mark">FF</div>
       <div class="app-name">Focus Flow</div>
     </div>
     <div class="header-icons">
-      <button class="icon-btn" onclick="toggleSearch()">🔍</button>
-      <button class="icon-btn cal-btn" onclick="setCalendarView('month')">📅</button>
+      <button class="icon-btn" onclick="toggleSearch()" aria-label="Search">🔍</button>
+      <button class="icon-btn" onclick="openNavMenu()" aria-label="Menu">☰</button>
     </div>
-  </div>
-  <div class="calendar-view-toggle" id="calendar-view-toggle">
-    <button class="view-pill active" data-view="day" onclick="setCalendarView('day')">Day</button>
-    <button class="view-pill" data-view="week" onclick="setCalendarView('week')">Week</button>
-    <button class="view-pill" data-view="month" onclick="setCalendarView('month')">Month</button>
-    <button class="view-pill" data-view="year" onclick="setCalendarView('year')">Year</button>
   </div>
   <div class="search-wrap" id="search-wrap">
     <input class="search-input" id="search-input" placeholder="Search tasks, events, wins..." oninput="runSearch(this.value)">
     <div class="search-results" id="search-results"></div>
   </div>
+</div>
+
+<!-- MY DAY -->
+<div id="screen-tracker" class="screen">
   <div id="view-day">
     <div class="day-nav-row">
       <div class="day-strip" id="day-strip"></div>
@@ -631,15 +632,6 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="settings-item" onclick="confirmClear()"><span class="settings-item-label" style="color:#ff4444">🗑 Clear all tasks</span><span class="settings-item-arrow">›</span></div>
 </div>
 
-<!-- NAV -->
-<nav class="bottom-nav" id="bottom-nav" style="display:none">
-  <button class="nav-btn active" id="nav-tracker" onclick="showScreen('tracker',this);renderDay()"><span class="nav-icon">📋</span>My Day</button>
-  <button class="nav-btn" id="nav-lists" onclick="showScreen('lists',this);renderLists()"><span class="nav-icon">📝</span>Lists</button>
-  <button class="nav-btn" id="nav-wins" onclick="showScreen('wins',this);renderWins()"><span class="nav-icon">🏆</span>Wins</button>
-  <button class="nav-btn" id="nav-streaks" onclick="showScreen('streaks',this);renderStreaks()"><span class="nav-icon">🔥</span>Streaks</button>
-  <button class="nav-btn" id="nav-settings" onclick="showScreen('settings',this)"><span class="nav-icon">⚙️</span>Settings</button>
-</nav>
-
 <!-- MONTH -->
 <div class="month-overlay" id="month-overlay" onclick="closeMonth()"></div>
 <div class="month-panel" id="month-panel">
@@ -730,16 +722,17 @@ let dyslexicFont = localStorage.getItem('ff4_dyslexic_font') === 'true';
 let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
 let theme = localStorage.getItem('ff4_theme') || 'ocean';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
+let currentScreen = 'tracker';
 
 const THEMES = {
-  ocean:    { id: 'ocean',    name: 'Ocean',    teal: '#1D9E75', anchor: '#2979C8', anchorBg: '#e8f1fb', flexBg: '#e1f5ee', anchorBgDark: '#0c2d50', flexBgDark: '#0d3526' },
-  sunset:   { id: 'sunset',   name: 'Sunset',   teal: '#D4750A', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#fef3e2', anchorBgDark: '#3d1a28', flexBgDark: '#3d2a10' },
-  lavender: { id: 'lavender', name: 'Lavender', teal: '#7F77DD', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#eeedf9', anchorBgDark: '#3d1a28', flexBgDark: '#2a2848' },
-  midnight: { id: 'midnight', name: 'Midnight', teal: '#546E7A', anchor: '#1D9E75', anchorBg: '#e1f5ee', flexBg: '#eceff1', anchorBgDark: '#0d3526', flexBgDark: '#263238' },
-  aurora:   { id: 'aurora',   name: 'Aurora',   teal: '#1D9E75', anchor: '#7F77DD', anchorBg: '#eeedf9', flexBg: '#e1f5ee', anchorBgDark: '#2a2848', flexBgDark: '#0d3526' },
-  crimson:  { id: 'crimson',  name: 'Crimson',  teal: '#212121', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#f0f0f0', anchorBgDark: '#3d1515', flexBgDark: '#1a1a1a' },
-  goldrush: { id: 'goldrush', name: 'Gold Rush', teal: '#F9A825', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#fff8e1', anchorBgDark: '#3d1515', flexBgDark: '#3d2f00' },
-  'midnight-blue': { id: 'midnight-blue', name: 'Midnight Blue', teal: '#F9A825', anchor: '#1565C0', anchorBg: '#e3f2fd', flexBg: '#fff8e1', anchorBgDark: '#0d2744', flexBgDark: '#3d2f00' },
+  ocean:    { id: 'ocean',    name: 'Ocean',    bg: '#f0f7ff', teal: '#1D9E75', anchor: '#2979C8', anchorBg: '#e8f1fb', flexBg: '#e1f5ee', anchorBgDark: '#0c2d50', flexBgDark: '#0d3526' },
+  sunset:   { id: 'sunset',   name: 'Sunset',   bg: '#fff5f0', teal: '#D4750A', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#fef3e2', anchorBgDark: '#3d1a28', flexBgDark: '#3d2a10' },
+  lavender: { id: 'lavender', name: 'Lavender', bg: '#f8f0ff', teal: '#7F77DD', anchor: '#E05A8A', anchorBg: '#fde8f0', flexBg: '#eeedf9', anchorBgDark: '#3d1a28', flexBgDark: '#2a2848' },
+  midnight: { id: 'midnight', name: 'Midnight', bg: '#f0f4f5', teal: '#546E7A', anchor: '#1D9E75', anchorBg: '#e1f5ee', flexBg: '#eceff1', anchorBgDark: '#0d3526', flexBgDark: '#263238' },
+  aurora:   { id: 'aurora',   name: 'Aurora',   bg: '#f3f0ff', teal: '#1D9E75', anchor: '#7F77DD', anchorBg: '#eeedf9', flexBg: '#e1f5ee', anchorBgDark: '#2a2848', flexBgDark: '#0d3526' },
+  crimson:  { id: 'crimson',  name: 'Crimson',  bg: '#fff0f0', teal: '#212121', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#f0f0f0', anchorBgDark: '#3d1515', flexBgDark: '#1a1a1a' },
+  goldrush: { id: 'goldrush', name: 'Gold Rush', bg: '#fff8f0', teal: '#F9A825', anchor: '#C62828', anchorBg: '#ffebee', flexBg: '#fff8e1', anchorBgDark: '#3d1515', flexBgDark: '#3d2f00' },
+  'midnight-blue': { id: 'midnight-blue', name: 'Midnight Blue', bg: '#f0f4ff', teal: '#F9A825', anchor: '#1565C0', anchorBg: '#e3f2fd', flexBg: '#fff8e1', anchorBgDark: '#0d2744', flexBgDark: '#3d2f00' },
 };
 const THEME_ORDER = ['ocean', 'sunset', 'lavender', 'midnight', 'aurora', 'crimson', 'goldrush', 'midnight-blue'];
 
@@ -752,6 +745,8 @@ function applyTheme(id) {
   root.style.setProperty('--anchor', t.anchor);
   root.style.setProperty('--anchor-bg', dark ? t.anchorBgDark : t.anchorBg);
   root.style.setProperty('--flex-bg', dark ? t.flexBgDark : t.flexBg);
+  if (dark) root.style.removeProperty('--bg');
+  else root.style.setProperty('--bg', t.bg);
   localStorage.setItem('ff4_theme', t.id);
 }
 
@@ -954,7 +949,7 @@ async function syncOnLogin(user) {
 function showAuthScreen() {
   document.getElementById('auth-screen').classList.add('active');
   document.getElementById('onboarding').classList.remove('active');
-  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('app-chrome').style.display = 'none';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 }
 
@@ -1140,8 +1135,8 @@ function startApp() {
     updateNudgeVoiceLabel();
   } else {
     document.getElementById('onboarding').classList.remove('active');
-    document.getElementById('bottom-nav').style.display = 'flex';
-    showScreen('tracker', document.getElementById('nav-tracker'));
+    document.getElementById('app-chrome').style.display = 'block';
+    showScreen('tracker');
     renderDay();
     updateViewLabel();
     updateSoundSettings();
@@ -1217,13 +1212,13 @@ const OB_STEPS = 5;
 
 function startOnboarding() {
   document.getElementById('onboarding').classList.add('active');
-  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('app-chrome').style.display = 'none';
   obStep = 0; renderOb();
 }
 function restartOnboarding() {
   obStep = 0;
   document.getElementById('onboarding').classList.add('active');
-  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('app-chrome').style.display = 'none';
   renderOb();
 }
 function renderOb() {
@@ -1254,18 +1249,53 @@ function finishOb() {
   if (!sched) sched = {};
   save();
   document.getElementById('onboarding').classList.remove('active');
-  document.getElementById('bottom-nav').style.display = 'flex';
-  showScreen('tracker', document.getElementById('nav-tracker'));
+  document.getElementById('app-chrome').style.display = 'block';
+  showScreen('tracker');
   renderDay();
   updateViewLabel();
   maybeShowInstallPrompt();
   initReminders();
 }
 function finishAndAdd() { finishOb(); setTimeout(()=>openAddSheet(viewDk,'Morning'),350); }
-function goToMyDay() { showScreen('tracker',document.getElementById('nav-tracker')); renderDay(); }
+function goToMyDay() { showScreen('tracker'); renderDay(); }
+
+// ── NAV MENU ─────────────────────────────────────────────────────
+function openNavMenu() {
+  document.getElementById('sheet-title').textContent = 'Menu';
+  const views = ['day', 'week', 'month', 'year'];
+  const viewLabels = { day: 'Day', week: 'Week', month: 'Month', year: 'Year' };
+  const viewPills = views.map(v =>
+    `<button class="view-pill${calendarView === v ? ' active' : ''}" onclick="navSetView('${v}')">${viewLabels[v]}</button>`
+  ).join('');
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="nav-menu-section">View</div>
+    <div class="nav-menu-view-toggle">${viewPills}</div>
+    <button class="nav-menu-item" onclick="navToScreen('lists')"><span class="nav-menu-icon">📝</span>Lists</button>
+    <button class="nav-menu-item" onclick="navToScreen('wins')"><span class="nav-menu-icon">🏆</span>Wins</button>
+    <button class="nav-menu-item" onclick="navToScreen('streaks')"><span class="nav-menu-icon">🔥</span>Streaks</button>
+    <button class="nav-menu-item" onclick="navToScreen('settings')"><span class="nav-menu-icon">⚙️</span>Settings</button>`;
+  openSheet();
+}
+function navSetView(view) {
+  closeSheet();
+  showScreen('tracker');
+  setCalendarView(view);
+}
+function navToScreen(name) {
+  closeSheet();
+  showScreen(name);
+  if (name === 'tracker') renderDay();
+  else if (name === 'lists') renderLists();
+  else if (name === 'wins') renderWins();
+  else if (name === 'streaks') renderStreaks();
+}
 
 // ── SEARCH ───────────────────────────────────────────────────────
 function toggleSearch() {
+  if (currentScreen !== 'tracker') {
+    showScreen('tracker');
+    renderDay();
+  }
   searchOpen = !searchOpen;
   document.getElementById('search-wrap').classList.toggle('open',searchOpen);
   if (searchOpen) document.getElementById('search-input').focus();
@@ -1295,7 +1325,7 @@ function runSearch(q) {
   if(wItems.length){html+=`<div class="search-group-label">Wins</div>`;wItems.slice(0,5).forEach(r=>html+=`<div class="search-result-item"><div class="search-result-dot" style="background:var(--teal)"></div><div><div class="search-result-title">${r.title}</div><div class="search-result-date">${r.date}</div></div></div>`);}
   el.innerHTML = html;
 }
-function jumpTo(d) { toggleSearch(); viewDk=d; showScreen('tracker',document.getElementById('nav-tracker')); setCalendarView('day'); }
+function jumpTo(d) { toggleSearch(); viewDk=d; showScreen('tracker'); setCalendarView('day'); }
 
 // ── CALENDAR VIEWS ───────────────────────────────────────────────
 function setCalendarView(view, opts) {
@@ -1310,11 +1340,7 @@ function setCalendarView(view, opts) {
   updateViewToggleUI();
   renderDay();
 }
-function updateViewToggleUI() {
-  document.querySelectorAll('.view-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.view === calendarView);
-  });
-}
+function updateViewToggleUI() {}
 function dayHasTasks(dkey) {
   return sched?.[dkey] && (
     Object.values(sched[dkey].structured||{}).some(a=>a.length>0) ||
@@ -1381,7 +1407,7 @@ function renderMonth() {
 function pickMonthDay(d) {
   viewDk=d;
   closeMonth();
-  showScreen('tracker',document.getElementById('nav-tracker'));
+  showScreen('tracker');
   setCalendarView('day');
 }
 function pickYearMonth(y, m) {
@@ -2454,7 +2480,7 @@ function doListSchedule(listId, taskId) {
   renderLists();
   if (confirm(`"${task.name}" scheduled for ${dayLabel(fromDk(dateVal))}. Go to My Day?`)) {
     viewDk = dateVal;
-    showScreen('tracker', document.getElementById('nav-tracker'));
+    showScreen('tracker');
     renderDay();
   }
 }
@@ -3003,11 +3029,10 @@ function getReminderFromForm() {
 function confirmClear(){if(confirm('Clear all tasks? This cannot be undone.')){sched={};checks={};wins={};badges={};save();renderDay();}}
 
 // ── SCREEN ───────────────────────────────────────────────────────
-function showScreen(name,btn){
+function showScreen(name){
+  currentScreen = name;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
-  if(btn)btn.classList.add('active');
   if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateThemeLabel(); updateAccountLabel(); }
 }
 
