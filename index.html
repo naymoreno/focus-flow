@@ -17,16 +17,19 @@
   --anchor:#2979C8;--anchor-bg:#e8f1fb;
   --teal:#1D9E75;--flex-bg:#e1f5ee;
   --purple:#7F77DD;--amber:#D4750A;--pink:#E05A8A;--red:#E53935;--brown:#8B5E3C;--slate:#546E7A;
-  --radius:12px;--nav-h:64px;
+  --radius:12px;--nav-h:64px;--bottom-bar-h:44px;
 }
 @media (prefers-color-scheme:dark) {
   :root{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
 }
+:root[data-theme-mode="light"]{--bg:#f5f4f0;--card:#fff;--border:#e5e3dc;--border-strong:#ccc;--text:#1a1a18;--text2:#555;--muted:#999;}
+:root[data-theme-mode="dark"]{--bg:#1a1a18;--card:#262624;--border:#3a3a37;--border-strong:#555;--text:#f0ede8;--text2:#aaa;--muted:#666;--anchor-bg:#0c2d50;--flex-bg:#0d3526;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !important;}
 
 .screen{display:none;padding:16px 16px calc(24px + env(safe-area-inset-bottom));min-height:100vh;max-width:480px;margin:0 auto;}
 .screen.active{display:block;}
+#screen-tracker.active{padding-bottom:calc(24px + var(--bottom-bar-h) + env(safe-area-inset-bottom));}
 .fullscreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;}
 .fullscreen.active{display:block;}
 
@@ -85,6 +88,23 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .cal-btn{flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:18px;cursor:pointer;}
 .back-today{display:none;width:100%;padding:8px;border-radius:var(--radius);border:0.5px solid var(--teal);background:var(--flex-bg);color:var(--teal);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:10px;text-align:center;}
 .back-today.show{display:block;}
+.back-view{display:none;width:100%;padding:8px;border-radius:var(--radius);border:0.5px solid var(--anchor);background:var(--anchor-bg);color:var(--anchor);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:10px;text-align:center;}
+.back-view.show{display:block;}
+
+/* BOTTOM BAR */
+.bottom-bar{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--card);border-top:0.5px solid var(--border);z-index:150;max-width:480px;margin:0 auto;}
+.bottom-bar.active{display:flex;align-items:center;justify-content:center;}
+.bottom-bar-btn{background:none;border:none;font-size:22px;cursor:pointer;padding:6px 20px;color:var(--text2);line-height:1;}
+.bottom-bar-btn:active{opacity:0.6;}
+
+/* VIEW PICKER */
+.view-picker-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:350;}
+.view-picker-overlay.active{display:block;}
+.view-picker-sheet{position:fixed;bottom:calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(8px);opacity:0;pointer-events:none;background:var(--card);border:0.5px solid var(--border);border-radius:14px;z-index:351;padding:6px;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:opacity 0.15s,transform 0.15s;max-width:480px;}
+.view-picker-sheet.active{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.view-picker-opt{display:block;width:100%;padding:10px 16px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;text-align:left;border-radius:8px;}
+.view-picker-opt:active{background:var(--bg);}
+.view-picker-opt.selected{color:var(--anchor);background:var(--anchor-bg);font-weight:600;}
 
 /* CALENDAR VIEW TOGGLE */
 .calendar-view-toggle{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
@@ -100,26 +120,21 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .nav-menu-item:active{background:var(--bg);}
 .nav-menu-icon{font-size:20px;width:28px;text-align:center;}
 
-/* MULTI-DAY COLUMNS */
-.multiday-scroll{display:flex;gap:8px;}
-.multiday-scroll.three-day .day-column{flex:1;min-width:0;}
-.multiday-scroll.week-scroll{overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
-.multiday-scroll.week-scroll::-webkit-scrollbar{display:none;}
-.multiday-scroll.week-scroll .day-column{flex:0 0 118px;min-width:118px;}
-.day-column{display:flex;flex-direction:column;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);max-height:calc(100vh - 240px);overflow:hidden;}
-.day-col-header{padding:10px 10px 8px;border-bottom:0.5px solid var(--border);position:relative;flex-shrink:0;}
-.day-col-header.is-today{background:var(--flex-bg);}
-.day-col-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.2;}
-.day-col-date{font-size:11px;color:var(--muted);margin-top:2px;}
-.day-col-add{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg);color:var(--anchor);font-size:16px;line-height:1;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;}
-.day-col-add:active{background:var(--anchor-bg);}
-.day-col-tasks{flex:1;overflow-y:auto;padding:8px;scrollbar-width:thin;}
-.day-col-tasks .block{padding:8px 10px;margin-bottom:6px;}
-.day-col-tasks .block-title{font-size:13px;}
-.day-col-tasks .block-check{width:20px;height:20px;}
-.day-col-empty{text-align:center;padding:16px 8px;color:var(--muted);font-size:11px;}
+/* MULTI-DAY GRID */
+.multiday-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.multiday-cell{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 8px;cursor:pointer;text-align:center;min-height:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:background 0.15s,border-color 0.15s;}
+.multiday-cell.is-today{border-color:var(--anchor);background:var(--anchor-bg);}
+.multiday-cell:active{background:var(--bg);}
+.multiday-cell-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.2;}
+.multiday-cell-date{font-size:11px;color:var(--muted);}
+.multiday-cell .month-dots{position:static;transform:none;margin-top:4px;justify-content:center;}
 
 /* INLINE MONTH */
+.month-scroll{max-height:calc(100vh - 200px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+.month-section{margin-bottom:20px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 12px;}
+.month-section:last-child{margin-bottom:8px;}
+.month-section.is-current-month{border-color:var(--anchor);}
+.month-section-title{font-size:16px;font-weight:700;color:var(--text);text-align:center;margin-bottom:12px;}
 .month-inline{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 12px;}
 .month-inline .month-dow{margin-bottom:4px;}
 .month-inline .month-day{min-height:36px;}
@@ -207,7 +222,8 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .month-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
 .month-dow div{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:4px 0;}
 .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.month-day{text-align:center;padding:6px 2px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text2);position:relative;min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.month-day{text-align:center;padding:6px 2px 8px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text2);position:relative;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;}
+.month-span-bar{height:4px;border-radius:2px;align-self:end;margin:0 1px 2px;width:calc(100% - 2px);pointer-events:none;opacity:0.9;}
 .month-day.is-today{color:var(--anchor);font-weight:700;}
 .month-day.is-selected{background:var(--anchor);color:#fff;border-radius:50%;width:30px;height:30px;margin:2px auto;}
 .month-dots{display:flex;gap:2px;position:absolute;bottom:1px;left:50%;transform:translateX(-50%);}
@@ -275,6 +291,10 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
 .settings-item-label{font-size:15px;color:var(--text);}
 .settings-item-arrow{color:var(--muted);font-size:18px;}
+.settings-close-btn{background:none;border:none;font-size:22px;color:var(--text2);cursor:pointer;padding:4px 8px;line-height:1;flex-shrink:0;}
+.settings-close-btn:active{color:var(--text);}
+.mode-pills{display:flex;gap:6px;width:100%;}
+.mode-pills .view-pill{flex:1;}
 .theme-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
 .theme-option{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:rgba(0,0,0,0.1);}
 .theme-option.selected{border-color:var(--anchor);background:var(--anchor-bg);}
@@ -535,6 +555,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
       <div class="day-strip" id="day-strip"></div>
     </div>
     <button class="back-today" id="back-today" onclick="goToToday()">← Back to today</button>
+    <button class="back-view" id="back-view" onclick="backToCalendarView()">← Month</button>
     <div class="page-header">
       <div><div class="page-title" id="day-name">Saturday</div><div class="page-sub" id="day-date"></div></div>
       <button class="add-task-btn" style="width:auto;padding:6px 14px;border-radius:99px;margin:0;font-size:13px;font-weight:500;border-style:solid;border-width:0.5px;" onclick="openAddSheet(viewDk,'Morning')">+ Add task</button>
@@ -543,18 +564,10 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <div id="blocks"></div>
   </div>
   <div id="view-multiday" style="display:none">
-    <div class="multiday-scroll" id="multiday-scroll"></div>
+    <div class="multiday-grid" id="multiday-scroll"></div>
   </div>
   <div id="view-month" style="display:none">
-    <div class="month-inline">
-      <div class="month-header">
-        <button class="month-nav" onclick="changeMonth(-1)">‹</button>
-        <div class="month-title" id="month-title-inline"></div>
-        <button class="month-nav" onclick="changeMonth(1)">›</button>
-      </div>
-      <div class="month-dow"><div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div></div>
-      <div class="month-grid" id="month-grid-inline"></div>
-    </div>
+    <div class="month-scroll" id="month-scroll"></div>
   </div>
   <div id="view-year" style="display:none">
     <div class="year-scroll" id="year-scroll"></div>
@@ -590,12 +603,23 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 
 <!-- SETTINGS -->
 <div id="screen-settings" class="screen">
-  <div class="page-header"><div><div class="page-title">Settings</div></div></div>
+  <div class="page-header">
+    <div><div class="page-title">Settings</div></div>
+    <button class="settings-close-btn" onclick="closeSettings()" aria-label="Close settings">✕</button>
+  </div>
   <div class="settings-section">App</div>
   <div class="settings-item" id="install-settings-item" onclick="openInstallHelp()"><span class="settings-item-label">📲 Add to Home Screen</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="restartOnboarding()"><span class="settings-item-label">🔄 Redo walkthrough</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="toggleView()"><span class="settings-item-label" id="view-label">📋 View: Structured</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Appearance</div>
+  <div class="settings-item" style="cursor:default;flex-direction:column;align-items:stretch;gap:10px;border-bottom:none;padding-bottom:8px;">
+    <span class="settings-item-label">🌓 Appearance mode</span>
+    <div class="mode-pills" id="theme-mode-pills">
+      <button class="view-pill" data-mode="system" onclick="setThemeMode('system')">System (default)</button>
+      <button class="view-pill" data-mode="light" onclick="setThemeMode('light')">Light</button>
+      <button class="view-pill" data-mode="dark" onclick="setThemeMode('dark')">Dark</button>
+    </div>
+  </div>
   <div class="settings-item" onclick="openThemeSettings()"><span class="settings-item-label" id="theme-label">🎨 Color theme: Ocean</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Sound</div>
   <div class="settings-item" style="cursor:default">
@@ -687,6 +711,18 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="sheet-body" id="sheet-body"></div>
 </div>
 
+<!-- BOTTOM BAR + VIEW PICKER -->
+<div class="bottom-bar" id="bottom-bar">
+  <button class="bottom-bar-btn" onclick="openViewPicker()" aria-label="Calendar view">📅</button>
+</div>
+<div class="view-picker-overlay" id="view-picker-overlay" onclick="closeViewPicker()"></div>
+<div class="view-picker-sheet" id="view-picker-sheet" onclick="event.stopPropagation()">
+  <button class="view-picker-opt" data-view="day" onclick="pickViewFromBar('day')">Day</button>
+  <button class="view-picker-opt" data-view="week" onclick="pickViewFromBar('week')">Week</button>
+  <button class="view-picker-opt" data-view="month" onclick="pickViewFromBar('month')">Month</button>
+  <button class="view-picker-opt" data-view="year" onclick="pickViewFromBar('year')">Year</button>
+</div>
+
 <script>
 // ── DATA ─────────────────────────────────────────────────────────
 const LIBRARY = {
@@ -721,8 +757,10 @@ let notificationsEnabled = localStorage.getItem('ff4_notifications') === 'true';
 let dyslexicFont = localStorage.getItem('ff4_dyslexic_font') === 'true';
 let nudgeVoice = localStorage.getItem('ff4_nudge_voice') || 'gentle';
 let theme = localStorage.getItem('ff4_theme') || 'ocean';
+let themeMode = localStorage.getItem('ff4_theme_mode') || 'system';
 let badges = JSON.parse(localStorage.getItem('ff4_badges') || '{}');
 let currentScreen = 'tracker';
+let previousScreen = 'tracker';
 
 const THEMES = {
   ocean:    { id: 'ocean',    name: 'Ocean',    bg: '#f0f7ff', teal: '#1D9E75', anchor: '#2979C8', anchorBg: '#e8f1fb', flexBg: '#e1f5ee', anchorBgDark: '#0c2d50', flexBgDark: '#0d3526' },
@@ -736,17 +774,48 @@ const THEMES = {
 };
 const THEME_ORDER = ['ocean', 'sunset', 'lavender', 'midnight', 'aurora', 'crimson', 'goldrush', 'midnight-blue'];
 
+function mixBgTint(tint, strength = 0.5) {
+  const base = [0xf5, 0xf4, 0xf0];
+  const t = [parseInt(tint.slice(1, 3), 16), parseInt(tint.slice(3, 5), 16), parseInt(tint.slice(5, 7), 16)];
+  const ch = i => Math.round(base[i] * (1 - strength) + t[i] * strength);
+  return `#${ch(0).toString(16).padStart(2, '0')}${ch(1).toString(16).padStart(2, '0')}${ch(2).toString(16).padStart(2, '0')}`;
+}
+
+function isDarkMode() {
+  if (themeMode === 'dark') return true;
+  if (themeMode === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function applyThemeMode() {
+  document.documentElement.setAttribute('data-theme-mode', themeMode);
+  applyTheme(theme);
+  updateThemeModeUI();
+}
+
+function setThemeMode(mode) {
+  themeMode = mode;
+  localStorage.setItem('ff4_theme_mode', mode);
+  applyThemeMode();
+}
+
+function updateThemeModeUI() {
+  document.querySelectorAll('#theme-mode-pills .view-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === themeMode);
+  });
+}
+
 function applyTheme(id) {
   const t = THEMES[id] || THEMES.ocean;
   theme = t.id;
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = isDarkMode();
   const root = document.documentElement;
   root.style.setProperty('--teal', t.teal);
   root.style.setProperty('--anchor', t.anchor);
   root.style.setProperty('--anchor-bg', dark ? t.anchorBgDark : t.anchorBg);
   root.style.setProperty('--flex-bg', dark ? t.flexBgDark : t.flexBg);
   if (dark) root.style.removeProperty('--bg');
-  else root.style.setProperty('--bg', t.bg);
+  else root.style.setProperty('--bg', mixBgTint(t.bg, 0.5));
   localStorage.setItem('ff4_theme', t.id);
 }
 
@@ -794,8 +863,10 @@ function pickTheme(id) {
   updateThemeLabel();
 }
 
-applyTheme(theme);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(theme));
+applyThemeMode();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (themeMode === 'system') applyTheme(theme);
+});
 let audioCtx = null;
 
 const NUDGE_VOICES = [
@@ -846,6 +917,7 @@ const VALID_CALENDAR_VIEWS = ['day','week','month','year'];
 if (!VALID_CALENDAR_VIEWS.includes(calendarView)) calendarView = 'day';
 if (localStorage.getItem('ff4_calendar_view') === '3day') calendarView = 'day';
 let yearDate = new Date(NOW);
+let previousCalendarView = null;
 let searchOpen = false;
 let currentCat = null;
 
@@ -1278,16 +1350,74 @@ function openNavMenu() {
 }
 function navSetView(view) {
   closeSheet();
+  previousCalendarView = null;
   showScreen('tracker');
   setCalendarView(view);
 }
 function navToScreen(name) {
   closeSheet();
+  closeViewPicker();
+  if (name === 'settings') previousScreen = currentScreen === 'settings' ? previousScreen : currentScreen;
   showScreen(name);
   if (name === 'tracker') renderDay();
   else if (name === 'lists') renderLists();
   else if (name === 'wins') renderWins();
   else if (name === 'streaks') renderStreaks();
+}
+
+// ── BOTTOM BAR + VIEW PICKER ─────────────────────────────────────
+function updateBottomBar() {
+  const bar = document.getElementById('bottom-bar');
+  const chromeVisible = document.getElementById('app-chrome').style.display !== 'none';
+  const onTracker = currentScreen === 'tracker';
+  bar.classList.toggle('active', chromeVisible && onTracker);
+  document.querySelectorAll('.view-picker-opt').forEach(btn => {
+    btn.classList.toggle('selected', btn.getAttribute('data-view') === calendarView);
+  });
+}
+function openViewPicker() {
+  document.querySelectorAll('.view-picker-opt').forEach(btn => {
+    btn.classList.toggle('selected', btn.getAttribute('data-view') === calendarView);
+  });
+  document.getElementById('view-picker-overlay').classList.add('active');
+  document.getElementById('view-picker-sheet').classList.add('active');
+}
+function closeViewPicker() {
+  document.getElementById('view-picker-overlay').classList.remove('active');
+  document.getElementById('view-picker-sheet').classList.remove('active');
+}
+function pickViewFromBar(view) {
+  closeViewPicker();
+  previousCalendarView = null;
+  showScreen('tracker');
+  setCalendarView(view);
+}
+function updateBackViewButton() {
+  const btn = document.getElementById('back-view');
+  if (!btn) return;
+  const show = calendarView === 'day' && previousCalendarView;
+  btn.classList.toggle('show', !!show);
+  if (show) btn.textContent = `← ${previousCalendarView.charAt(0).toUpperCase() + previousCalendarView.slice(1)}`;
+}
+function backToCalendarView() {
+  if (!previousCalendarView) return;
+  const target = previousCalendarView;
+  previousCalendarView = null;
+  setCalendarView(target);
+}
+function goToDayFromCalendar(dkey, fromView) {
+  viewDk = dkey;
+  previousCalendarView = fromView;
+  showScreen('tracker');
+  setCalendarView('day');
+}
+
+function closeSettings() {
+  showScreen(previousScreen);
+  if (previousScreen === 'tracker') renderDay();
+  else if (previousScreen === 'lists') renderLists();
+  else if (previousScreen === 'wins') renderWins();
+  else if (previousScreen === 'streaks') renderStreaks();
 }
 
 // ── SEARCH ───────────────────────────────────────────────────────
@@ -1325,7 +1455,7 @@ function runSearch(q) {
   if(wItems.length){html+=`<div class="search-group-label">Wins</div>`;wItems.slice(0,5).forEach(r=>html+=`<div class="search-result-item"><div class="search-result-dot" style="background:var(--teal)"></div><div><div class="search-result-title">${r.title}</div><div class="search-result-date">${r.date}</div></div></div>`);}
   el.innerHTML = html;
 }
-function jumpTo(d) { toggleSearch(); viewDk=d; showScreen('tracker'); setCalendarView('day'); }
+function jumpTo(d) { toggleSearch(); viewDk=d; showScreen('tracker'); previousCalendarView = null; setCalendarView('day'); }
 
 // ── CALENDAR VIEWS ───────────────────────────────────────────────
 function setCalendarView(view, opts) {
@@ -1335,24 +1465,62 @@ function setCalendarView(view, opts) {
   else if (view === 'month' && calendarView !== 'month') monthDate = fromDk(viewDk);
   if (opts.yearDate) yearDate = opts.yearDate;
   else if (view === 'year' && calendarView !== 'year') yearDate = new Date(fromDk(viewDk));
+  if (view !== 'day' || opts.clearBackNav) previousCalendarView = null;
   calendarView = view;
   localStorage.setItem('ff4_calendar_view', view);
   updateViewToggleUI();
   renderDay();
+  updateBackViewButton();
+  updateBottomBar();
 }
-function updateViewToggleUI() {}
+function updateViewToggleUI() {
+  document.querySelectorAll('.view-picker-opt').forEach(btn => {
+    btn.classList.toggle('selected', btn.getAttribute('data-view') === calendarView);
+  });
+}
+function dkeyInRange(dkey, start, end) {
+  return dkey >= start && dkey <= end;
+}
+function getTasksForDay(dkey) {
+  const results = [];
+  const seen = new Set();
+  if (!sched) return results;
+  Object.entries(sched).forEach(([storedDay, day]) => {
+    let all = [...(day.simple || [])];
+    ZONES.forEach(z => { all = all.concat(day.structured?.[z] || []); });
+    all.forEach(t => {
+      if (seen.has(t.id)) return;
+      let show = false;
+      if (t.spanStart && t.spanEnd) show = dkeyInRange(dkey, t.spanStart, t.spanEnd);
+      else show = storedDay === dkey;
+      if (show) { seen.add(t.id); results.push(t); }
+    });
+  });
+  return results;
+}
+function getEventsForDay(dkey) {
+  const results = [];
+  const seen = new Set();
+  if (!sched) return results;
+  Object.entries(sched).forEach(([storedDay, day]) => {
+    (day.events || []).forEach(e => {
+      if (seen.has(e.id)) return;
+      let show = false;
+      if (e.spanStart && e.spanEnd) show = dkeyInRange(dkey, e.spanStart, e.spanEnd);
+      else show = storedDay === dkey;
+      if (show) { seen.add(e.id); results.push(e); }
+    });
+  });
+  return results;
+}
 function dayHasTasks(dkey) {
-  return sched?.[dkey] && (
-    Object.values(sched[dkey].structured||{}).some(a=>a.length>0) ||
-    (sched[dkey].simple||[]).length>0 ||
-    (sched[dkey].events||[]).length>0
-  );
+  return getTasksForDay(dkey).length > 0 || getEventsForDay(dkey).length > 0;
 }
 function getMonthDayDots(dkey) {
-  const tasks = getDayTasks(dkey);
+  const tasks = getTasksForDay(dkey);
   const hasAnchor = tasks.some(t => (t.type || 'anchor') === 'anchor');
   const hasFlex = tasks.some(t => t.type === 'flex');
-  const hasEvents = (sched?.[dkey]?.events || []).length > 0;
+  const hasEvents = getEventsForDay(dkey).length > 0;
   let taskDot = null;
   if (hasAnchor) taskDot = 'teal';
   else if (hasFlex) taskDot = 'gray';
@@ -1387,39 +1555,116 @@ function getWeekStart(date) {
 function openMonth() { setCalendarView('month'); }
 function closeMonth() { document.getElementById('month-overlay').classList.remove('active'); document.getElementById('month-panel').classList.remove('active'); }
 function changeMonth(d) { monthDate.setMonth(monthDate.getMonth()+d); renderDay(); }
-function renderMonthGrid(gridEl, titleEl) {
-  if (!gridEl) return;
-  const y=monthDate.getFullYear(), m=monthDate.getMonth();
-  if (titleEl) titleEl.textContent=`${MONTHS[m]} ${y}`;
-  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
-  let html='';
-  for(let i=0;i<first;i++) html+=`<div class="month-day empty-day-cal"></div>`;
-  for(let d=1;d<=days;d++){
-    const dkey=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isTod=dkey===todayDk, isSel=dkey===viewDk;
-    html+=`<div class="month-day ${isTod?'is-today':''} ${isSel?'is-selected':''}" onclick="pickMonthDay('${dkey}')">${d}${renderMonthDayDots(dkey)}</div>`;
+function collectMonthSpanItems(y, m) {
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const monthStart = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${y}-${String(m + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const items = [];
+  const seen = new Set();
+  if (!sched) return items;
+  Object.values(sched).forEach(day => {
+    let tasks = [...(day.simple || [])];
+    ZONES.forEach(z => { tasks = tasks.concat(day.structured?.[z] || []); });
+    tasks.forEach(t => {
+      if (!t.spanStart || !t.spanEnd || t.spanStart === t.spanEnd || seen.has('t_' + t.id)) return;
+      if (t.spanEnd < monthStart || t.spanStart > monthEnd) return;
+      seen.add('t_' + t.id);
+      items.push({ kind: 'task', id: t.id, label: t.name, color: t.color || 'var(--teal)', spanStart: t.spanStart, spanEnd: t.spanEnd });
+    });
+    (day.events || []).forEach(e => {
+      if (!e.spanStart || !e.spanEnd || e.spanStart === e.spanEnd || seen.has('e_' + e.id)) return;
+      if (e.spanEnd < monthStart || e.spanStart > monthEnd) return;
+      seen.add('e_' + e.id);
+      items.push({ kind: 'event', id: e.id, label: e.text, color: 'var(--purple)', spanStart: e.spanStart, spanEnd: e.spanEnd });
+    });
+  });
+  return items;
+}
+function buildMonthSpanBars(y, m, first, days) {
+  const monthStart = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${y}-${String(m + 1).padStart(2, '0')}-${String(days).padStart(2, '0')}`;
+  let html = '';
+  collectMonthSpanItems(y, m).forEach(item => {
+    const clipStart = item.spanStart > monthStart ? item.spanStart : monthStart;
+    const clipEnd = item.spanEnd < monthEnd ? item.spanEnd : monthEnd;
+    const startDay = parseInt(clipStart.split('-')[2], 10);
+    const endDay = parseInt(clipEnd.split('-')[2], 10);
+    const startIdx = first + startDay - 1;
+    const endIdx = first + endDay - 1;
+    const startRow = Math.floor(startIdx / 7) + 1;
+    const endRow = Math.floor(endIdx / 7) + 1;
+    for (let row = startRow; row <= endRow; row++) {
+      const rowStartIdx = (row - 1) * 7;
+      const rowEndIdx = rowStartIdx + 6;
+      const segStart = Math.max(startIdx, rowStartIdx);
+      const segEnd = Math.min(endIdx, rowEndIdx);
+      const colStart = (segStart % 7) + 1;
+      const colEnd = (segEnd % 7) + 2;
+      html += `<div class="month-span-bar" style="grid-row:${row};grid-column:${colStart}/${colEnd};background:${item.color}" title="${item.label.replace(/"/g, '&quot;')}"></div>`;
+    }
+  });
+  return html;
+}
+function buildMonthGridHtml(y, m) {
+  const first = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  let html = '';
+  for (let i = 0; i < first; i++) {
+    const row = Math.floor(i / 7) + 1;
+    const col = (i % 7) + 1;
+    html += `<div class="month-day empty-day-cal" style="grid-row:${row};grid-column:${col}"></div>`;
   }
-  gridEl.innerHTML=html;
+  for (let d = 1; d <= days; d++) {
+    const dkey = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isTod = dkey === todayDk;
+    const isSel = dkey === viewDk;
+    const idx = first + d - 1;
+    const row = Math.floor(idx / 7) + 1;
+    const col = (idx % 7) + 1;
+    html += `<div class="month-day ${isTod ? 'is-today' : ''} ${isSel ? 'is-selected' : ''}" style="grid-row:${row};grid-column:${col}" onclick="pickMonthDay('${dkey}')">${d}${renderMonthDayDots(dkey)}</div>`;
+  }
+  html += buildMonthSpanBars(y, m, first, days);
+  return html;
+}
+function renderMonthGrid(gridEl, titleEl, y, m) {
+  if (!gridEl) return;
+  if (y === undefined) { y = monthDate.getFullYear(); m = monthDate.getMonth(); }
+  if (titleEl) titleEl.textContent = `${MONTHS[m]} ${y}`;
+  gridEl.innerHTML = buildMonthGridHtml(y, m);
 }
 function renderMonth() {
   renderMonthGrid(document.getElementById('month-grid'), document.getElementById('month-title'));
 }
 function pickMonthDay(d) {
-  viewDk=d;
-  closeMonth();
-  showScreen('tracker');
-  setCalendarView('day');
+  goToDayFromCalendar(d, 'month');
 }
 function pickYearMonth(y, m) {
-  setCalendarView('month', { monthDate: new Date(y, m, 1) });
+  setCalendarView('month', { monthDate: new Date(y, m, 1), clearBackNav: true });
 }
 function pickYearDay(dkey) {
-  viewDk = dkey;
-  setCalendarView('day');
+  goToDayFromCalendar(dkey, 'year');
 }
 
 function renderMonthInline() {
-  renderMonthGrid(document.getElementById('month-grid-inline'), document.getElementById('month-title-inline'));
+  const container = document.getElementById('month-scroll');
+  const thisYear = NOW.getFullYear();
+  const currentMonth = NOW.getMonth();
+  let html = '';
+  for (let y = thisYear - 1; y <= thisYear + 1; y++) {
+    for (let m = 0; m < 12; m++) {
+      const isCurrent = y === thisYear && m === currentMonth;
+      html += `<div class="month-section ${isCurrent ? 'is-current-month' : ''}" id="month-section-${y}-${m}">
+        <div class="month-section-title">${MONTHS[m]} ${y}</div>
+        <div class="month-dow"><div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div></div>
+        <div class="month-grid">${buildMonthGridHtml(y, m)}</div>
+      </div>`;
+    }
+  }
+  container.innerHTML = html;
+  setTimeout(() => {
+    const currentSection = document.getElementById(`month-section-${thisYear}-${currentMonth}`);
+    if (currentSection) currentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
 }
 
 function renderYearView() {
@@ -1454,50 +1699,30 @@ function renderYearView() {
   }, 50);
 }
 
-function renderMultiDayColumns(dayKeys) {
-  const container = document.getElementById('multiday-scroll');
-  container.className = 'multiday-scroll week-scroll';
-  container.innerHTML = '';
-  dayKeys.forEach(dkey => {
-    ensureDay(dkey);
-    injectBirthdays(dkey);
-    const day = sched[dkey];
-    const date = fromDk(dkey);
-    const isToday = dkey === todayDk;
-    const col = document.createElement('div');
-    col.className = 'day-column';
-    const addZone = viewMode === 'simple' ? 'All' : 'Morning';
-    col.innerHTML = `<div class="day-col-header ${isToday?'is-today':''}">
-      <div class="day-col-name">${isToday?'Today':DNAMES[date.getDay()]}</div>
-      <div class="day-col-date">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
-      <button class="day-col-add" onclick="openAddSheet('${dkey}','${addZone}')" title="Add task">+</button>
-    </div>`;
-    const tasksWrap = document.createElement('div');
-    tasksWrap.className = 'day-col-tasks';
-    const tasks = getDayTasks(dkey);
-    const events = day.events || [];
-    if (!tasks.length && !events.length) {
-      const empty = document.createElement('div');
-      empty.className = 'day-col-empty';
-      empty.textContent = 'Nothing yet';
-      tasksWrap.appendChild(empty);
-    } else {
-      tasks.forEach(t => tasksWrap.appendChild(makeBlock(t, dkey, findTaskZone(dkey, t))));
-      events.forEach(ev => tasksWrap.appendChild(makeEventBlock(ev, dkey)));
-    }
-    col.appendChild(tasksWrap);
-    container.appendChild(col);
-  });
+function pickGridDay(dkey) {
+  viewDk = dkey;
+  previousCalendarView = null;
+  setCalendarView('day');
 }
+
 function renderWeekView() {
-  const start = getWeekStart(NOW);
-  const dayKeys = [];
-  for (let i = 0; i < 7; i++) {
+  const container = document.getElementById('multiday-scroll');
+  const start = fromDk(todayDk);
+  let html = '';
+  for (let i = 0; i < 9; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    dayKeys.push(dk(d));
+    const dkey = dk(d);
+    const isToday = dkey === todayDk;
+    const dayName = isToday ? 'Today' : DNAMES[d.getDay()];
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    html += `<div class="multiday-cell ${isToday ? 'is-today' : ''}" onclick="pickGridDay('${dkey}')">
+      <div class="multiday-cell-name">${dayName}</div>
+      <div class="multiday-cell-date">${dateStr}</div>
+      ${renderMonthDayDots(dkey)}
+    </div>`;
   }
-  renderMultiDayColumns(dayKeys);
+  container.innerHTML = html;
 }
 
 // ── DAY STRIP ────────────────────────────────────────────────────
@@ -1525,9 +1750,10 @@ function buildStrip() {
   const activeChip = strip.querySelector('.active');
   if (activeChip) setTimeout(()=>activeChip.scrollIntoView({behavior:'smooth',inline:'start',block:'nearest'}),50);
   document.getElementById('back-today').classList.toggle('show', viewDk!==todayDk);
+  updateBackViewButton();
 }
 function switchDay(d) { viewDk=d; buildStrip(); renderDay(); }
-function goToToday() { viewDk=todayDk; buildStrip(); renderDay(); }
+function goToToday() { viewDk=todayDk; previousCalendarView=null; buildStrip(); renderDay(); }
 
 // ── RENDER DAY ───────────────────────────────────────────────────
 function toggleEdit() {
@@ -1556,7 +1782,6 @@ function renderDay() {
 function renderDayView() {
   ensureDay(viewDk);
   injectBirthdays(viewDk);
-  const day = sched[viewDk];
   const viewDate = fromDk(viewDk);
   document.getElementById('day-name').textContent = DNAMES[viewDate.getDay()];
   document.getElementById('day-date').textContent = dayLabel(viewDate);
@@ -1565,11 +1790,12 @@ function renderDayView() {
   const container = document.getElementById('blocks');
   container.innerHTML = '';
 
+  const dayTasks = getTasksForDay(viewDk);
   let allTasks = [];
 
   if (viewMode==='structured') {
     ZONES.forEach(zone => {
-      const tasks = day.structured?.[zone]||[];
+      const tasks = dayTasks.filter(t => (ZONES.includes(t.zone) ? t.zone : 'Morning') === zone);
       allTasks = allTasks.concat(tasks);
       const zl = document.createElement('div');
       zl.className = 'zone-label'; zl.textContent = zone;
@@ -1582,15 +1808,14 @@ function renderDayView() {
       if(!tasks.length){const e=document.createElement('div');e.style.cssText='text-align:center;padding:6px;color:var(--muted);font-size:12px;';e.textContent='Nothing yet';container.appendChild(e);}
     });
   } else {
-    const tasks = day.simple||[];
-    allTasks = tasks;
+    allTasks = dayTasks;
     const ab=document.createElement('button');ab.className='add-task-btn';ab.textContent='+ Add task';ab.onclick=()=>openAddSheet(viewDk,'All');container.appendChild(ab);
-    tasks.forEach(t=>container.appendChild(makeBlock(t,viewDk,'All')));
-    if(!tasks.length){const e=document.createElement('div');e.className='empty-day';e.innerHTML='<div style="font-size:40px;margin-bottom:12px">📋</div><div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">Nothing here yet</div><div style="font-size:13px;color:var(--muted)">Tap "+ Add task" above to get started.</div>';container.appendChild(e);}
+    dayTasks.forEach(t=>container.appendChild(makeBlock(t,viewDk,'All')));
+    if(!dayTasks.length){const e=document.createElement('div');e.className='empty-day';e.innerHTML='<div style="font-size:40px;margin-bottom:12px">📋</div><div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">Nothing here yet</div><div style="font-size:13px;color:var(--muted)">Tap "+ Add task" above to get started.</div>';container.appendChild(e);}
   }
 
   // Life events
-  const events = day.events||[];
+  const events = getEventsForDay(viewDk);
   const evLabel=document.createElement('div');evLabel.className='zone-label';evLabel.textContent='Life events';container.appendChild(evLabel);
   const evBtn=document.createElement('button');evBtn.className='add-event-btn';evBtn.textContent='✦ Add a memory';evBtn.onclick=()=>openEventSheet(viewDk);container.appendChild(evBtn);
   events.forEach(ev=>container.appendChild(makeEventBlock(ev,viewDk)));
@@ -1720,6 +1945,7 @@ function makeBlock(task, d, zone) {
   el.style.borderLeftColor = color;
 
   const repeatBadge = task.repeat==='yes'?`<span class="badge badge-repeat">↻ ${task.freq==='daily'?'daily':task.freq||'repeats'}</span>`:'';
+  const spanBadge = task.spanStart&&task.spanEnd&&task.spanStart!==task.spanEnd?`<span class="badge badge-repeat">📅 multi-day</span>`:'';
   const bumpedBadge = task.bumped?`<span class="bumped-badge">↳ bumped</span>`:'';
   const bellBadge = hasReminder(task)?`<span class="reminder-bell" title="Reminder set">🔔</span>`:'';
   const tags = (task.tags||[]).map(t=>`<span class="tag-pill">${t}</span>`).join('');
@@ -1732,7 +1958,7 @@ function makeBlock(task, d, zone) {
       ${task.detail?`<div class="block-detail">${task.detail}</div>`:''}
       <div class="block-meta">
         <span class="badge ${task.type==='anchor'?'badge-anchor':'badge-flex'}">${task.type==='anchor'?'⚓':'💪'} ${task.type}</span>
-        ${repeatBadge}${tags}
+        ${repeatBadge}${spanBadge}${tags}
       </div>
     </div>`;
 
@@ -1820,7 +2046,8 @@ function makeEventBlock(ev, d) {
   const el=document.createElement('div');
   el.className=`block event-block`;
   const tags=(ev.tags||[]).map(t=>`<span class="tag-pill">${t}</span>`).join('');
-  el.innerHTML=`<div class="event-icon">✦</div><div class="block-body"><div class="block-title" style="color:var(--purple)">${ev.text}</div>${tags?`<div class="block-meta">${tags}</div>`:''}</div><button class="block-delete" onclick="event.stopPropagation();deleteEvent('${ev.id}','${d}')">✕</button>`;
+  const spanBadge = ev.spanStart&&ev.spanEnd&&ev.spanStart!==ev.spanEnd?`<span class="badge badge-repeat">📅 multi-day</span>`:'';
+  el.innerHTML=`<div class="event-icon">✦</div><div class="block-body"><div class="block-title" style="color:var(--purple)">${ev.text}</div>${spanBadge||tags?`<div class="block-meta">${spanBadge}${tags}</div>`:''}</div><button class="block-delete" onclick="event.stopPropagation();deleteEvent('${ev.id}','${d}')">✕</button>`;
   return el;
 }
 
@@ -2148,7 +2375,8 @@ function showForm(prefill, existing) {
     ${viewMode==='structured'?`<div class="form-field"><label class="form-label">Zone</label><div class="zone-picker">${zoneOpts}</div></div>`:'<input type="hidden" id="task-zone" value="All">'}
     <div class="form-field"><label class="form-label">Type</label><div class="type-toggle"><button class="type-btn ${(t.type||'anchor')==='anchor'?'sel-anchor':''}" id="type-anchor" onclick="selType('anchor')">⚓ Anchor</button><button class="type-btn ${t.type==='flex'?'sel-flex':''}" id="type-flex" onclick="selType('flex')">💪 Flex</button></div></div>
     <div class="form-field"><label class="form-label">Color</label><div class="color-swatches">${swatches}<input type="color" class="color-wheel" id="color-wheel" value="${selColor.startsWith('#')?selColor:'#2979C8'}" onchange="selCustomColor(this.value)"></div><input type="hidden" id="task-color" value="${selColor}"></div>
-    <div class="form-field"><label class="form-label">Repeats?</label><div class="repeat-toggle"><button class="repeat-btn ${!t.repeat?'selected':''}" id="rep-no" onclick="selRepeat('no')">No</button><button class="repeat-btn ${t.repeat?'selected':''}" id="rep-yes" onclick="selRepeat('yes')">Yes</button></div><div id="rep-details"></div></div>
+    <div class="form-field"><div class="streak-toggle-row"><span style="font-size:14px;color:var(--text2)">Spans multiple days</span><label class="toggle-switch"><input type="checkbox" id="span-toggle" ${t.spanStart&&t.spanEnd&&t.spanStart!==t.spanEnd?'checked':''} onchange="toggleSpanDates()"><span class="toggle-slider"></span></label></div><div id="span-dates" style="margin-top:10px;${t.spanStart&&t.spanEnd&&t.spanStart!==t.spanEnd?'':'display:none'}"><label class="form-label">Start date</label><input class="form-input" type="date" id="span-start" value="${t.spanStart||pendingTask.d||viewDk}"><label class="form-label" style="margin-top:10px">End date</label><input class="form-input" type="date" id="span-end" value="${t.spanEnd||pendingTask.d||viewDk}"></div></div>
+    <div class="form-field"><label class="form-label">Repeat</label><div id="rep-details"></div></div>
     <div class="form-field"><label class="form-label">Remind me</label><div class="end-options" id="reminder-options">${renderReminderOptions(t.reminder||'none')}</div><div id="reminder-time-wrap" style="margin-top:10px;${t.reminder==='day_of'?'':'display:none'}"><label class="form-label">Reminder time</label><input class="form-input" type="time" id="reminder-time" value="${t.reminderTime||'09:00'}"></div><div id="reminder-both-wrap" style="margin-top:10px;${t.reminder==='both'?'':'display:none'}"><label class="form-label">First reminder (day before)</label><input class="form-input" type="time" id="reminder-time-before" value="${t.reminderTimeBefore||'09:00'}"><label class="form-label" style="margin-top:10px">Second reminder (day of)</label><input class="form-input" type="time" id="reminder-time-day" value="${t.reminderTime||'09:00'}"></div></div>
     <div class="form-field"><label class="form-label">Track as a streak 🔥</label><div class="streak-toggle-row"><span style="font-size:14px;color:var(--text2)">Count consecutive completions</span><label class="toggle-switch"><input type="checkbox" id="streak-toggle" ${t.trackStreak?'checked':''}><span class="toggle-slider"></span></label></div></div>
     <div class="form-field"><label class="form-label">Tags (optional)</label><div class="tag-row"><input class="tag-input" id="tag-input" placeholder="Add a tag..." onkeydown="if(event.key==='Enter')addTag()"><button class="tag-add-btn" onclick="addTag()">+</button></div><div class="tags-display" id="tags-display"></div></div>
@@ -2156,31 +2384,60 @@ function showForm(prefill, existing) {
     <button class="save-btn" onclick="saveTask()">${isEdit?'Save changes':'Add task'}</button>`;
 
   renderTags();
-  if (t.repeat) showRepeatDetails('yes',t);
+  showRepeatDetails(t);
+}
+
+function toggleSpanDates() {
+  const on = document.getElementById('span-toggle')?.checked;
+  const wrap = document.getElementById('span-dates');
+  if (wrap) wrap.style.display = on ? 'block' : 'none';
+}
+function getRepeatModeFromTask(t) {
+  if (!t || !t.repeat) return 'none';
+  if (t.freq === 'daily') return 'daily';
+  if (t.freq === 'biweekly') return 'biweekly';
+  if (t.freq === 'monthly') return 'monthly';
+  if (t.freq === 'yearly') return 'yearly';
+  return 'weekly';
 }
 
 function selZone(el,z){document.querySelectorAll('.zone-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');}
 function selType(t){document.getElementById('type-anchor').className=`type-btn ${t==='anchor'?'sel-anchor':''}`;document.getElementById('type-flex').className=`type-btn ${t==='flex'?'sel-flex':''}`;}
 function selColor(el,c){document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));el.classList.add('selected');document.getElementById('task-color').value=c;}
 function selCustomColor(c){document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));document.getElementById('task-color').value=c;}
-function selRepeat(m){document.querySelectorAll('.repeat-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('rep-'+m).classList.add('selected');showRepeatDetails(m);}
-function showRepeatDetails(m,ex={}) {
+function showRepeatDetails(ex={}) {
   const el=document.getElementById('rep-details');
-  if(m==='no'){el.innerHTML='';return;}
-  const sd=ex.repeatDays||[], sf=ex.freq||'';
+  if(!el)return;
+  const mode=getRepeatModeFromTask(ex);
+  const sd=ex.repeatDays||[];
+  const options=[
+    {id:'none',label:'Does not repeat'},
+    {id:'daily',label:'Daily — every day'},
+    {id:'weekly',label:'Weekly — specific days'},
+    {id:'biweekly',label:'Biweekly — specific days'},
+    {id:'monthly',label:'Monthly'},
+    {id:'yearly',label:'Yearly'},
+  ];
+  const showDays=mode==='weekly'||mode==='biweekly';
+  const showEnds=mode!=='none';
   el.innerHTML=`
-    <div style="margin-top:10px"><div class="form-label" style="margin-bottom:6px">Which days?</div>
-    <div class="day-picker">${DSHORT.map((d,i)=>`<button class="day-pick-btn ${sd.includes(i)?'selected':''}" data-day="${i}" onclick="this.classList.toggle('selected');toggleFreqVis()">${d}</button>`).join('')}</div></div>
-    <div id="freq-vis" style="margin-top:10px${DSHORT.length===7?';display:none':''}"><div class="form-label" style="margin-bottom:6px">How often?</div>
-    <div class="freq-options">${['Weekly','Biweekly','Monthly','Yearly'].map(f=>`<button class="freq-btn ${sf===f.toLowerCase()?'selected':''}" onclick="selFreq(this,'${f.toLowerCase()}')">${f}</button>`).join('')}</div></div>
-    <div class="form-field" style="margin-top:10px"><label class="form-label">Ends</label><div class="end-options">
+    <div class="freq-options" style="flex-direction:column;align-items:stretch">${options.map(o=>`<button class="freq-btn ${mode===o.id?'selected':''}" data-freq="${o.id}" onclick="selRepeatFreq(this,'${o.id}')">${o.label}</button>`).join('')}</div>
+    <div id="rep-day-picker" style="margin-top:10px;${showDays?'':'display:none'}"><div class="form-label" style="margin-bottom:6px">Which days?</div>
+    <div class="day-picker">${DSHORT.map((d,i)=>`<button class="day-pick-btn ${sd.includes(i)?'selected':''}" data-day="${i}" onclick="this.classList.toggle('selected')">${d}</button>`).join('')}</div></div>
+    <div id="rep-ends" style="margin-top:10px;${showEnds?'':'display:none'}"><label class="form-label">Ends</label><div class="end-options">
       <div class="end-option ${!ex.endType||ex.endType==='never'?'selected':''}" onclick="selEnd(this,'never')"><div class="end-radio"><div class="end-radio-dot"></div></div><span>Never</span></div>
       <div class="end-option ${ex.endType==='after'?'selected':''}" onclick="selEnd(this,'after')"><div class="end-radio"><div class="end-radio-dot"></div></div><span>After X occurrences</span>${ex.endType==='after'?`<input class="end-sub-input" id="end-count" type="number" value="${ex.endCount||''}">`:''}</div>
       <div class="end-option ${ex.endType==='date'?'selected':''}" onclick="selEnd(this,'date')"><div class="end-radio"><div class="end-radio-dot"></div></div><span>On a specific date</span>${ex.endType==='date'?`<input class="end-sub-input" id="end-date" type="date" value="${ex.endDate||''}">`:''}</div>
     </div></div>`;
 }
-function toggleFreqVis(){const n=document.querySelectorAll('.day-pick-btn.selected').length;const f=document.getElementById('freq-vis');if(f)f.style.display=n===7?'none':'block';}
-function selFreq(el,f){document.querySelectorAll('.freq-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');}
+function selRepeatFreq(el,mode){
+  document.querySelectorAll('#rep-details .freq-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  const dayPicker=document.getElementById('rep-day-picker');
+  const ends=document.getElementById('rep-ends');
+  if(dayPicker)dayPicker.style.display=(mode==='weekly'||mode==='biweekly')?'block':'none';
+  if(ends)ends.style.display=mode==='none'?'none':'block';
+}
 function selEnd(el,t){
   document.querySelectorAll('#rep-details .end-option').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');
   if(t==='after'&&!el.querySelector('#end-count'))el.insertAdjacentHTML('beforeend','<input class="end-sub-input" id="end-count" type="number" placeholder="e.g. 8">');
@@ -2206,17 +2463,34 @@ function saveTask() {
     const { reminder, reminderTime, reminderTimeBefore } = getReminderFromForm();
     if (reminder !== 'none' && notificationsEnabled) await ensureNotificationPermission();
 
-    const repSel=document.querySelector('.repeat-btn.selected');
-    const repMode=repSel?.id==='rep-yes'?'yes':'no';
+    const repSel=document.querySelector('#rep-details .freq-btn.selected');
+    const repeatMode=repSel?.getAttribute('data-freq')||'none';
     let repeatDays=[],freq='weekly',endType='never',endCount=null,endDate=null;
-    if(repMode==='yes'){
-      repeatDays=[...document.querySelectorAll('.day-pick-btn.selected')].map(b=>parseInt(b.getAttribute('data-day'))).filter(d=>!isNaN(d));
-      freq=repeatDays.length===7?'daily':(document.querySelector('.freq-btn.selected')?.textContent?.toLowerCase()?.trim()||'weekly');
+    let repMode='no';
+    if(repeatMode!=='none'){
+      repMode='yes';
+      freq=repeatMode;
+      if(repeatMode==='weekly'||repeatMode==='biweekly'){
+        repeatDays=[...document.querySelectorAll('.day-pick-btn.selected')].map(b=>parseInt(b.getAttribute('data-day'))).filter(d=>!isNaN(d));
+      }else if(repeatMode==='daily'){
+        repeatDays=[0,1,2,3,4,5,6];
+      }
     }
     const endSel=document.querySelector('#rep-details .end-option.selected');
-    if(endSel){const lbl=endSel.querySelector('span')?.textContent||'';if(lbl.includes('occurrence')){endType='after';endCount=document.getElementById('end-count')?.value||null;}else if(lbl.includes('specific')){endType='date';endDate=document.getElementById('end-date')?.value||null;}}
+    if(endSel&&repMode==='yes'){const lbl=endSel.querySelector('span')?.textContent||'';if(lbl.includes('occurrence')){endType='after';endCount=document.getElementById('end-count')?.value||null;}else if(lbl.includes('specific')){endType='date';endDate=document.getElementById('end-date')?.value||null;}}
+
+    const spanOn=document.getElementById('span-toggle')?.checked;
+    let spanStart=null,spanEnd=null;
+    if(spanOn){
+      spanStart=document.getElementById('span-start')?.value;
+      spanEnd=document.getElementById('span-end')?.value;
+      if(!spanStart||!spanEnd){alert('Please enter start and end dates.');return;}
+      if(spanEnd<spanStart){alert('End date must be on or after start date.');return;}
+    }
 
     const taskObj={id:editingTask?.id||Date.now().toString(),name,time,detail,zone,type,color,trackStreak,tags:[...pendingTags],repeat:repMode==='yes'?'yes':null,repeatDays,freq,endType,endCount,endDate,reminder,reminderTime:reminderTime||undefined,reminderTimeBefore:reminderTimeBefore||undefined,createdAt:editingTask?.createdAt||Date.now()};
+    if(spanOn){taskObj.spanStart=spanStart;taskObj.spanEnd=spanEnd;}
+    else if(editingTask?.spanStart){taskObj.spanStart=undefined;taskObj.spanEnd=undefined;}
 
     // Save to user library
     if(saveToLib&&currentCat){
@@ -2227,7 +2501,7 @@ function saveTask() {
     if(editingTask){
       updateTask(taskObj, pendingTask.d||viewDk, zone);
     } else {
-      const d=pendingTask.d||viewDk;
+      const d=spanOn?spanStart:(pendingTask.d||viewDk);
       if(repMode==='yes'&&repeatDays.length>0){
         // Add to next 52 weeks for each selected day
         repeatDays.forEach(dayIdx=>{
@@ -2278,8 +2552,11 @@ function updateTask(updated, dayKey, newZone) {
 }
 function editTask(id,d,zone){
   let found=null;
-  if(viewMode==='structured'){ZONES.forEach(z=>{const t=sched[d]?.structured?.[z]?.find(t=>t.id===id);if(t)found={...t,zone:z};});}
-  else{found=sched[d]?.simple?.find(t=>t.id===id);}
+  getTasksForDay(d).forEach(t=>{ if(t.id===id) found={...t,zone:zone||t.zone||findTaskZone(d,t)}; });
+  if(!found){
+    if(viewMode==='structured'){ZONES.forEach(z=>{const t=sched[d]?.structured?.[z]?.find(t=>t.id===id);if(t)found={...t,zone:z};});}
+    else{found=sched[d]?.simple?.find(t=>t.id===id);}
+  }
   if(!found)return;
   pendingTask={d,zone:zone||found.zone};showForm(null,found);openSheetGuarded();
 }
@@ -2309,16 +2586,31 @@ function openEventSheet(d) {
   document.getElementById('sheet-body').innerHTML=`
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Capture a moment — not a task. "Ran into Marie." "Got a new car." "Hit my goal." No checkoff needed.</div>
     <div class="form-field"><label class="form-label">What happened?</label><textarea class="form-textarea" id="event-text" style="min-height:90px" placeholder="e.g. Had the most amazing coffee date..."></textarea></div>
+    <div class="form-field"><div class="streak-toggle-row"><span style="font-size:14px;color:var(--text2)">Spans multiple days</span><label class="toggle-switch"><input type="checkbox" id="event-span-toggle" onchange="toggleEventSpanDates()"><span class="toggle-slider"></span></label></div><div id="event-span-dates" style="margin-top:10px;display:none"><label class="form-label">Start date</label><input class="form-input" type="date" id="event-span-start" value="${d||viewDk}"><label class="form-label" style="margin-top:10px">End date</label><input class="form-input" type="date" id="event-span-end" value="${d||viewDk}"></div></div>
     <div class="form-field"><label class="form-label">Tags (optional)</label><div class="tag-row"><input class="tag-input" id="tag-input" placeholder="e.g. friends, wins" onkeydown="if(event.key==='Enter')addTag()"><button class="tag-add-btn" onclick="addTag()">+</button></div><div class="tags-display" id="tags-display"></div></div>
     <button class="save-btn" style="background:var(--purple)" onclick="saveEvent()">Save event</button>`;
   openSheet();
 }
+function toggleEventSpanDates() {
+  const on = document.getElementById('event-span-toggle')?.checked;
+  const wrap = document.getElementById('event-span-dates');
+  if (wrap) wrap.style.display = on ? 'block' : 'none';
+}
 function saveEvent(){
   const text=document.getElementById('event-text')?.value?.trim();
   if(!text){alert('Please describe what happened.');return;}
-  const d=pendingTask.d||viewDk;
+  const spanOn=document.getElementById('event-span-toggle')?.checked;
+  let spanStart=null,spanEnd=null,d=pendingTask.d||viewDk;
+  if(spanOn){
+    spanStart=document.getElementById('event-span-start')?.value;
+    spanEnd=document.getElementById('event-span-end')?.value;
+    if(!spanStart||!spanEnd){alert('Please enter start and end dates.');return;}
+    if(spanEnd<spanStart){alert('End date must be on or after start date.');return;}
+    d=spanStart;
+  }
   ensureDay(d);
   const ev={id:Date.now().toString(),text,tags:[...pendingTags],createdAt:Date.now()};
+  if(spanOn){ev.spanStart=spanStart;ev.spanEnd=spanEnd;}
   sched[d].events.push(ev);
   // Add to wins live
   if(!wins[d])wins[d]={date:dayLabel(fromDk(d)),items:[],events:[]};
@@ -2327,8 +2619,10 @@ function saveEvent(){
   save();closeSheet();renderDay();
 }
 function deleteEvent(id,d){
-  if(!sched[d])return;
-  sched[d].events=sched[d].events.filter(e=>e.id!==id);
+  if(!sched)return;
+  Object.values(sched).forEach(day=>{
+    if(day.events) day.events=day.events.filter(e=>e.id!==id);
+  });
   save();renderDay();
 }
 
@@ -3033,7 +3327,8 @@ function showScreen(name){
   currentScreen = name;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateThemeLabel(); updateAccountLabel(); }
+  updateBottomBar();
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateThemeLabel(); updateThemeModeUI(); updateAccountLabel(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
