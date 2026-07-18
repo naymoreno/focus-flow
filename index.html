@@ -517,7 +517,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="settings-item" onclick="restartOnboarding()"><span class="settings-item-label">🔄 Redo walkthrough</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-item" onclick="toggleView()"><span class="settings-item-label" id="view-label">📋 View: Structured</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Appearance</div>
-  <div class="theme-list" id="theme-picker"></div>
+  <div class="settings-item" onclick="openThemeSettings()"><span class="settings-item-label" id="theme-label">🎨 Color theme: Ocean</span><span class="settings-item-arrow">›</span></div>
   <div class="settings-section">Sound</div>
   <div class="settings-item" style="cursor:default">
     <span class="settings-item-label">✓ Check-off sound</span>
@@ -676,8 +676,29 @@ function applyTheme(id) {
   localStorage.setItem('ff4_theme', t.id);
 }
 
-function renderThemePicker() {
-  const el = document.getElementById('theme-picker');
+function getTheme(id) {
+  return THEMES[id] || THEMES.ocean;
+}
+
+function updateThemeLabel() {
+  const el = document.getElementById('theme-label');
+  if (el) {
+    const name = getTheme(theme).name;
+    el.textContent = `🎨 Color theme: ${name}${theme === 'ocean' ? ' (default)' : ''}`;
+  }
+}
+
+function openThemeSettings() {
+  document.getElementById('sheet-title').textContent = 'Color Theme';
+  document.getElementById('sheet-body').innerHTML = `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Choose a color theme for buttons, accents, and highlights throughout the app.</div>
+    <div class="theme-list" id="theme-list"></div>`;
+  renderThemeSettings();
+  openSheet();
+}
+
+function renderThemeSettings() {
+  const el = document.getElementById('theme-list');
   if (!el) return;
   el.innerHTML = THEME_ORDER.map(id => {
     const t = THEMES[id];
@@ -695,7 +716,8 @@ function renderThemePicker() {
 
 function pickTheme(id) {
   applyTheme(id);
-  renderThemePicker();
+  renderThemeSettings();
+  updateThemeLabel();
 }
 
 applyTheme(theme);
@@ -1047,6 +1069,7 @@ function startApp() {
     maybeShowInstallPrompt();
   }
   updateAccountLabel();
+  updateThemeLabel();
 }
 
 async function bootApp() {
@@ -2729,7 +2752,7 @@ function showScreen(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateAccountLabel(); renderThemePicker(); }
+  if(name==='settings'){ updateSoundSettings(); updateNotificationSettings(); updateAccessibilitySettings(); updateNudgeVoiceLabel(); updateThemeLabel(); updateAccountLabel(); }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
