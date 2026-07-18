@@ -122,10 +122,13 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .month-inline .month-day{min-height:36px;}
 
 /* YEAR VIEW */
-.year-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.year-header #year-title{font-size:18px;font-weight:700;color:var(--text);}
+.year-scroll{max-height:calc(100vh - 200px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+.year-section{margin-bottom:28px;}
+.year-section:last-child{margin-bottom:8px;}
+.year-section-title{font-size:18px;font-weight:700;color:var(--text);text-align:center;margin-bottom:14px;}
 .year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.year-month{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 6px;cursor:pointer;transition:background 0.15s;}
+.year-month{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 6px;cursor:pointer;transition:background 0.15s,border-color 0.15s;}
+.year-month.is-current-month{border-color:var(--anchor);background:var(--anchor-bg);}
 .year-month:active{background:var(--bg);}
 .year-month-name{font-size:11px;font-weight:700;text-align:center;color:var(--text);margin-bottom:6px;}
 .year-mini-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:0;margin-bottom:2px;}
@@ -204,7 +207,11 @@ body.dyslexic-font,body.dyslexic-font *{font-family:'OpenDyslexic',sans-serif !i
 .month-day{text-align:center;padding:6px 2px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text2);position:relative;min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .month-day.is-today{color:var(--anchor);font-weight:700;}
 .month-day.is-selected{background:var(--anchor);color:#fff;border-radius:50%;width:30px;height:30px;margin:2px auto;}
-.month-day.has-tasks::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--anchor);position:absolute;bottom:1px;left:50%;transform:translateX(-50%);}
+.month-dots{display:flex;gap:2px;position:absolute;bottom:1px;left:50%;transform:translateX(-50%);}
+.month-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.month-dot.dot-teal{background:var(--teal);}
+.month-dot.dot-gray{background:var(--muted);}
+.month-dot.dot-purple{background:var(--purple);}
 .month-day.empty-day-cal{opacity:0.2;cursor:default;}
 .month-close{margin-top:14px;width:100%;padding:10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg);font-family:inherit;font-size:14px;cursor:pointer;color:var(--text2);}
 
@@ -514,7 +521,6 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   </div>
   <div class="calendar-view-toggle" id="calendar-view-toggle">
     <button class="view-pill active" data-view="day" onclick="setCalendarView('day')">Day</button>
-    <button class="view-pill" data-view="3day" onclick="setCalendarView('3day')">3-Day</button>
     <button class="view-pill" data-view="week" onclick="setCalendarView('week')">Week</button>
     <button class="view-pill" data-view="month" onclick="setCalendarView('month')">Month</button>
     <button class="view-pill" data-view="year" onclick="setCalendarView('year')">Year</button>
@@ -550,12 +556,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
   <div id="view-year" style="display:none">
-    <div class="year-header">
-      <button class="month-nav" onclick="changeYear(-1)">‹</button>
-      <div id="year-title"></div>
-      <button class="month-nav" onclick="changeYear(1)">›</button>
-    </div>
-    <div class="year-grid" id="year-grid"></div>
+    <div class="year-scroll" id="year-scroll"></div>
   </div>
 </div>
 
@@ -846,8 +847,9 @@ let deletingTask = null;
 let pendingTags = [];
 let monthDate = new Date(NOW);
 let calendarView = localStorage.getItem('ff4_calendar_view') || 'day';
-const VALID_CALENDAR_VIEWS = ['day','3day','week','month','year'];
+const VALID_CALENDAR_VIEWS = ['day','week','month','year'];
 if (!VALID_CALENDAR_VIEWS.includes(calendarView)) calendarView = 'day';
+if (localStorage.getItem('ff4_calendar_view') === '3day') calendarView = 'day';
 let yearDate = new Date(NOW);
 let searchOpen = false;
 let currentCat = null;
@@ -1320,6 +1322,25 @@ function dayHasTasks(dkey) {
     (sched[dkey].events||[]).length>0
   );
 }
+function getMonthDayDots(dkey) {
+  const tasks = getDayTasks(dkey);
+  const hasAnchor = tasks.some(t => (t.type || 'anchor') === 'anchor');
+  const hasFlex = tasks.some(t => t.type === 'flex');
+  const hasEvents = (sched?.[dkey]?.events || []).length > 0;
+  let taskDot = null;
+  if (hasAnchor) taskDot = 'teal';
+  else if (hasFlex) taskDot = 'gray';
+  return { taskDot, hasEvents };
+}
+function renderMonthDayDots(dkey) {
+  const { taskDot, hasEvents } = getMonthDayDots(dkey);
+  if (!taskDot && !hasEvents) return '';
+  let html = '<div class="month-dots">';
+  if (taskDot === 'teal') html += '<span class="month-dot dot-teal"></span>';
+  else if (taskDot === 'gray') html += '<span class="month-dot dot-gray"></span>';
+  if (hasEvents) html += '<span class="month-dot dot-purple"></span>';
+  return html + '</div>';
+}
 function findTaskZone(dkey, task) {
   const day = sched?.[dkey];
   if (!day) return 'Morning';
@@ -1350,8 +1371,7 @@ function renderMonthGrid(gridEl, titleEl) {
   for(let d=1;d<=days;d++){
     const dkey=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isTod=dkey===todayDk, isSel=dkey===viewDk;
-    const hasTasks=dayHasTasks(dkey);
-    html+=`<div class="month-day ${isTod?'is-today':''} ${isSel?'is-selected':''} ${hasTasks?'has-tasks':''}" onclick="pickMonthDay('${dkey}')">${d}</div>`;
+    html+=`<div class="month-day ${isTod?'is-today':''} ${isSel?'is-selected':''}" onclick="pickMonthDay('${dkey}')">${d}${renderMonthDayDots(dkey)}</div>`;
   }
   gridEl.innerHTML=html;
 }
@@ -1364,7 +1384,6 @@ function pickMonthDay(d) {
   showScreen('tracker',document.getElementById('nav-tracker'));
   setCalendarView('day');
 }
-function changeYear(d) { yearDate.setFullYear(yearDate.getFullYear()+d); renderDay(); }
 function pickYearMonth(y, m) {
   setCalendarView('month', { monthDate: new Date(y, m, 1) });
 }
@@ -1378,30 +1397,40 @@ function renderMonthInline() {
 }
 
 function renderYearView() {
-  const y = yearDate.getFullYear();
-  document.getElementById('year-title').textContent = y;
-  const grid = document.getElementById('year-grid');
+  const container = document.getElementById('year-scroll');
+  const thisYear = NOW.getFullYear();
+  const currentMonth = NOW.getMonth();
+  const years = [thisYear - 1, thisYear, thisYear + 1];
   let html = '';
-  for (let m = 0; m < 12; m++) {
-    const first = new Date(y, m, 1).getDay();
-    const days = new Date(y, m + 1, 0).getDate();
-    let mini = '<div class="year-mini-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div><div class="year-mini-grid">';
-    for (let i = 0; i < first; i++) mini += '<div class="year-mini-day empty"></div>';
-    for (let d = 1; d <= days; d++) {
-      const dkey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const isTod = dkey === todayDk;
-      const hasTasks = dayHasTasks(dkey);
-      mini += `<div class="year-mini-day ${isTod?'is-today':''} ${hasTasks?'has-tasks':''}" onclick="event.stopPropagation();pickYearDay('${dkey}')">${d}</div>`;
+  years.forEach(y => {
+    html += `<div class="year-section" id="year-section-${y}"><div class="year-section-title">${y}</div><div class="year-grid">`;
+    for (let m = 0; m < 12; m++) {
+      const first = new Date(y, m, 1).getDay();
+      const days = new Date(y, m + 1, 0).getDate();
+      let mini = '<div class="year-mini-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div><div class="year-mini-grid">';
+      for (let i = 0; i < first; i++) mini += '<div class="year-mini-day empty"></div>';
+      for (let d = 1; d <= days; d++) {
+        const dkey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isTod = dkey === todayDk;
+        const hasTasks = dayHasTasks(dkey);
+        mini += `<div class="year-mini-day ${isTod?'is-today':''} ${hasTasks?'has-tasks':''}" onclick="event.stopPropagation();pickYearDay('${dkey}')">${d}</div>`;
+      }
+      mini += '</div>';
+      const isCurrentMonth = y === thisYear && m === currentMonth;
+      html += `<div class="year-month ${isCurrentMonth?'is-current-month':''}" onclick="pickYearMonth(${y},${m})"><div class="year-month-name">${MONTHS[m].slice(0,3)}</div>${mini}</div>`;
     }
-    mini += '</div>';
-    html += `<div class="year-month" onclick="pickYearMonth(${y},${m})"><div class="year-month-name">${MONTHS[m].slice(0,3)}</div>${mini}</div>`;
-  }
-  grid.innerHTML = html;
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+  setTimeout(() => {
+    const currentSection = document.getElementById(`year-section-${thisYear}`);
+    if (currentSection) currentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
 }
 
-function renderMultiDayColumns(dayKeys, horizontalScroll) {
+function renderMultiDayColumns(dayKeys) {
   const container = document.getElementById('multiday-scroll');
-  container.className = horizontalScroll ? 'multiday-scroll week-scroll' : 'multiday-scroll three-day';
+  container.className = 'multiday-scroll week-scroll';
   container.innerHTML = '';
   dayKeys.forEach(dkey => {
     ensureDay(dkey);
@@ -1434,15 +1463,6 @@ function renderMultiDayColumns(dayKeys, horizontalScroll) {
     container.appendChild(col);
   });
 }
-function renderThreeDayView() {
-  const dayKeys = [];
-  for (let i = 0; i < 3; i++) {
-    const d = new Date(NOW);
-    d.setDate(NOW.getDate() + i);
-    dayKeys.push(dk(d));
-  }
-  renderMultiDayColumns(dayKeys, false);
-}
 function renderWeekView() {
   const start = getWeekStart(NOW);
   const dayKeys = [];
@@ -1451,7 +1471,7 @@ function renderWeekView() {
     d.setDate(start.getDate() + i);
     dayKeys.push(dk(d));
   }
-  renderMultiDayColumns(dayKeys, true);
+  renderMultiDayColumns(dayKeys);
 }
 
 // ── DAY STRIP ────────────────────────────────────────────────────
@@ -1494,13 +1514,12 @@ function toggleEdit() {
 
 function renderDay() {
   document.getElementById('view-day').style.display = calendarView === 'day' ? 'block' : 'none';
-  document.getElementById('view-multiday').style.display = (calendarView === '3day' || calendarView === 'week') ? 'block' : 'none';
+  document.getElementById('view-multiday').style.display = calendarView === 'week' ? 'block' : 'none';
   document.getElementById('view-month').style.display = calendarView === 'month' ? 'block' : 'none';
   document.getElementById('view-year').style.display = calendarView === 'year' ? 'block' : 'none';
   updateViewToggleUI();
 
   switch (calendarView) {
-    case '3day': renderThreeDayView(); return;
     case 'week': renderWeekView(); return;
     case 'month': renderMonthInline(); return;
     case 'year': renderYearView(); return;
